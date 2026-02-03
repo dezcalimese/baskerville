@@ -4,6 +4,10 @@
 import sys
 from pathlib import Path
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 import typer
 from rich.console import Console
 

@@ -1,26 +1,24 @@
 <p align="center">
-  <img src="static/hound.png" alt="Hound Banner" width="75%">
+  <img src="static/baskerville.png" alt="Baskerville Banner" width="75%">
 </p>
-<h1 align="center">Hound</h1>
+<h1 align="center">Baskerville</h1>
 
-<p align="center"><strong>Autonomous agents for code security auditing</strong></p>
+<p align="center"><strong>Solidity-focused smart contract security auditing agent</strong></p>
 
 <p align="center">
-  <a href="https://github.com/muellerberndt/hound/actions"><img src="https://github.com/muellerberndt/hound/workflows/Tests/badge.svg" alt="Tests"></a>
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.8%2B-blue" alt="Python 3.8+"/></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+"/></a>
+  <a href="https://anthropic.com"><img src="https://img.shields.io/badge/Anthropic-Compatible-6B46C1" alt="Anthropic"/></a>
   <a href="https://openai.com"><img src="https://img.shields.io/badge/OpenAI-Compatible-74aa9c" alt="OpenAI"/></a>
   <a href="https://ai.google.dev/"><img src="https://img.shields.io/badge/Gemini-Compatible-4285F4" alt="Gemini"/></a>
-  <a href="https://anthropic.com"><img src="https://img.shields.io/badge/Anthropic-Compatible-6B46C1" alt="Anthropic"/></a>
 </p>
 
 <p align="center">
   <sub>
     <a href="#overview"><b>Overview</b></a>
-    • <a href="#configuration"><b>Configuration</b></a>
+    • <a href="#what-baskerville-adds"><b>What Baskerville Adds</b></a>
+    • <a href="#hound-core"><b>Hound Core</b></a>
     • <a href="#complete-audit-workflow"><b>Workflow</b></a>
-    • <a href="#chatbot-telemetry-ui"><b>Chatbot</b></a>
-    • <a href="#contributing"><b>Contributing</b></a>
   </sub>
 </p>
 
@@ -28,22 +26,41 @@
 
 ## Overview
 
-Hound is a Language-agnostic AI auditor that autonomously builds and refines adaptive knowledge graphs for deep, iterative code reasoning.
+Baskerville is a smart contract security auditing agent built on top of [**Hound**](https://github.com/scabench-org/hound), Bernhard Mueller's open-source AI auditor. While Hound provides a powerful language-agnostic foundation for autonomous code auditing, Baskerville extends it with Solidity-specific tooling, vulnerability databases, and an automated bug bounty workflow.
 
-### Key Features
+The name references Baskerville from Hellsing — Alucard's familiar.
 
-- Graph-driven analysis – Flexible, agent-designed graphs that can model any aspect of a system (e.g. architecture, access control, value flows, math, etc.)
-- Relational graph views – High-level graphs support cross-aspect reasoning and precise retrieval of the code snippets that back each subsystem investigated.
-- Belief & hypothesis system – Observations, assumptions, and hypotheses evolve with confidence scores, enabling long-horizon reasoning and cumulative audits.
-- Dynamic model switching – Lightweight "scout" models handle exploration; heavyweight "strategist" models provide deep reasoning, mirroring expert workflows while keeping costs efficient.
-- Strategic audit planning - Balances broad code coverage with focused investigation of the most promising aspects, ensuring both depth and efficiency.
+### What Hound Provides (the foundation)
 
-**Codebase size considerations:** While Hound can analyze any codebase, it's optimized for small-to-medium sized projects like typical smart contract applications. Large enterprise codebases may exceed context limits and require selective analysis of specific subsystems.
+Baskerville inherits all of Hound's core capabilities:
 
-### Links
+- **Knowledge graph builder** — Flexible, agent-designed graphs that model architecture, access control, value flows, math, etc.
+- **Belief & hypothesis system** — Observations, assumptions, and hypotheses with confidence scores that evolve over time
+- **Scout/Strategist model switching** — Lightweight models explore, heavyweight models reason deeply
+- **Two audit modes** — `sweep` (systematic broad coverage) and `intuition` (targeted deep investigation)
+- **Session management** — Resume sessions, track coverage, avoid duplicate work
+- **PoC prompt generation** — Generates prompts for coding agents to write exploit PoCs
+- **Report generation** — Professional HTML audit reports
+- **Chatbot/Telemetry UI** — Web UI for live monitoring and steering audits
 
-- [Paper](https://arxiv.org/html/2510.09633v1)
-- [Walkthrough](https://muellerberndt.medium.com/hunting-for-security-bugs-in-code-with-ai-agents-a-full-walkthrough-a0dc24e1adf0)
+> **Links:** [Hound Paper](https://arxiv.org/html/2510.09633v1) • [Hound Walkthrough](https://muellerberndt.medium.com/hunting-for-security-bugs-in-code-with-ai-agents-a-full-walkthrough-a0dc24e1adf0)
+
+## What Baskerville Adds
+
+### Solodit Integration
+Integration with Cyfrin's [Solodit](https://solodit.xyz) database of 49,000+ smart contract audit findings. Query past vulnerabilities reactively (when patterns are detected) or proactively (before auditing a protocol category).
+
+### Static Analysis Pipeline
+Orchestrated pipeline running Slither, Aderyn, and custom AST patterns *before* the LLM touches code. Results feed into Hound's hypothesis system as initial observations.
+
+### Solidity-Specific Graph Templates
+ERC pattern templates (ERC20, ERC721, ERC4626, ERC777), DeFi protocol templates (lending, AMMs, vaults, perpetuals, governance), and proxy analysis (UUPS, Transparent, Beacon, storage layout).
+
+### Audit Knowledge Base
+Structured checklists (380+ items from Solodit), Foundry PoC templates by vulnerability class, auditor heuristics, and vector embeddings for semantic search over past audits.
+
+### Bounty/Contest Workflow
+Automated workflow for Code4rena, Sherlock, CodeHawks, and Immunefi contests — contest scraping, platform-specific formatters, and submission preparation with a human review gate (never auto-submits).
 
 ## Installation
 
@@ -53,67 +70,35 @@ pip install -r requirements.txt
 
 ## Configuration
 
-Set up your OpenAI API key and optional base URL:
+Set up your API keys:
 
 ```bash
 export OPENAI_API_KEY=your_key_here
-# Optional: override the base URL (defaults to https://api.openai.com)
-export OPENAI_BASE_URL=https://api.openai.com
+export ANTHROPIC_API_KEY=your_key_here  # recommended for Claude models
 ```
 
 Using Gemini via Vertex AI (optional):
 
-- Enable Vertex AI mode (instead of AI Studio) and set your GCP project and region.
-- Credentials are taken from ADC (Application Default Credentials) or a service account; GOOGLE_API_KEY is not used in Vertex AI mode.
-
 ```bash
-# Enable Vertex AI routing for Gemini
 export GOOGLE_USE_VERTEX_AI=1
-
-# Provide project and region (region examples: us-central1, europe-west1, asia-northeast1, etc.)
 export VERTEX_PROJECT_ID=my-gcp-project
 export VERTEX_LOCATION=us-central1
-# Alternatively (fallbacks also supported):
-# export GOOGLE_CLOUD_PROJECT=my-gcp-project
-# export GOOGLE_CLOUD_REGION=us-central1
-
-# Authenticate (one of the following)
-# 1) Use gcloud ADC (recommended for local dev):
-#    gcloud auth application-default login
-# 2) Or point to a service account key file:
-#    export GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
+# Then: gcloud auth application-default login
 ```
 
-When configured, the effective Vertex AI endpoint will be constructed as:
-https://{region}-aiplatform.googleapis.com/v1/projects/{project}/locations/{region}
-For example:
-https://us-central1-aiplatform.googleapis.com/v1/projects/my-gcp-project/locations/us-central1
-
-Optional: configure via config.yaml instead of env vars:
-
-```yaml
-gemini:
-  api_key_env: GOOGLE_API_KEY
-  vertex_ai:
-    enabled: true
-    project_id: "my-gcp-project"
-    region: "us-central1"
-```
-
-Copy the example configuration and edit as needed:
+Copy and edit the config:
 
 ```bash
 cp hound/config.yaml.example hound/config.yaml
-# then edit hound/config.yaml to select providers/models and options
 ```
 
-Notes:
-- Defaults work out-of-the-box; you can override many options via CLI flags.
-- Keep API keys out of the repo; `API_KEYS.txt` is gitignored and can be sourced.
-
-<!-- Quick Start and Repository Layout removed to avoid duplication; see Complete Audit Workflow below. -->
-
 **Note:** Audit quality scales with time and model capability. Use longer runs and advanced models for more complete results.
+
+---
+
+## Hound Core
+
+The sections below document Hound's core functionality, which Baskerville builds on top of.
 
 ## Complete Audit Workflow
 
@@ -178,7 +163,7 @@ Operational notes:
 
 Whitelists (strongly recommended):
 
-- Always pass a whitelist of input files via `--files`. For the best results, the selected files should fit in the model’s available context window; whitelisting keeps the graph builder focused and avoids token overflows.
+- Always pass a whitelist of input files via `--files`. For the best results, the selected files should fit in the model's available context window; whitelisting keeps the graph builder focused and avoids token overflows.
 - If you do not pass `--files`, Hound will consider all files in the repository. On large codebases this triggers sampling and may degrade coverage/quality.
 - `--files` expects a comma‑separated list of paths relative to the repo root.
 
@@ -221,7 +206,7 @@ The audit phase uses the **senior/junior pattern** with planning and investigati
 ./hound.py agent audit myaudit --mode intuition --time-limit 300
 
 # Start with telemetry (connect the Chatbot UI to steer)
-./hound.py agent audit myaudit --mode intuition --time-limit 30 --telemetry 
+./hound.py agent audit myaudit --mode intuition --time-limit 30 --telemetry
 
 # Attach to an existing session and continue where you left off
 ./hound.py agent audit myaudit --mode intuition --session <session_id>
@@ -302,7 +287,7 @@ For specific concerns, run focused investigations without full planning:
 # Use specific models for investigation
 ./hound.py agent investigate "Review emergency functions" myaudit \
   --model gpt-4o \
-  --strategist-model gpt-5
+  --strategist-model claude-opus-4
 ```
 
 **When to use targeted investigations:**
@@ -332,7 +317,7 @@ A reasoning model reviews all hypotheses and updates their status based on evide
 ```
 
 **What happens during finalization:**
-1. A reasoning model (default: GPT-5) reviews each hypothesis
+1. A reasoning model reviews each hypothesis
 2. Evaluates the evidence and code context
 3. Updates status to `confirmed` or `rejected` based on analysis
 4. Adjusts confidence scores based on evidence strength
@@ -396,10 +381,6 @@ Produce comprehensive audit reports with all findings and PoCs:
 - **Proof-of-concepts**: Any imported PoCs with syntax highlighting
 - **Severity distribution**: Visual breakdown of finding severities
 - **Recommendations**: Suggested fixes and improvements
-
-**Note:** The report uses a professional dark theme and includes all imported PoCs automatically.
-
-<!-- Removed duplicate "Complete Example Workflow" in favor of the detailed Complete Audit Workflow. -->
 
 ## Session Management
 
@@ -495,8 +476,8 @@ Open the UI: http://127.0.0.1:5280
 
 3) Select the running instance and stream activity
 
-- The input next to “Start” lists detected instances as `project_path | instance_id`.
-- Click “Start” to attach; the UI auto‑connects the realtime channel and begins streaming decisions/results.
+- The input next to "Start" lists detected instances as `project_path | instance_id`.
+- Click "Start" to attach; the UI auto‑connects the realtime channel and begins streaming decisions/results.
 - The lower panel has tabs:
   - Activity: live status/decisions
   - Plan: current strategist plan (✓ done, ▶ active, • pending)
@@ -504,7 +485,7 @@ Open the UI: http://127.0.0.1:5280
 
 4) Steer the audit
 
-- Use the “Steer” form (e.g., “Investigate reentrancy across the whole app next”).
+- Use the "Steer" form (e.g., "Investigate reentrancy across the whole app next").
 - Steering is queued at `<project>/.hound/steering.jsonl` and consumed exactly once when applied.
 - Broad, global instructions may preempt the current investigation and trigger immediate replanning.
 
@@ -551,8 +532,8 @@ Override default models per component:
 ```bash
 # Use different models for each role
 ./hound.py agent audit myaudit \
-  --platform openai --model gpt-4o-mini \           # Scout
-  --strategist-platform anthropic --strategist-model claude-3-opus   # Strategist
+  --platform anthropic --model claude-haiku-4   # Scout
+  --strategist-platform anthropic --strategist-model claude-opus-4   # Strategist
 ```
 
 ### Debug Mode
@@ -581,6 +562,12 @@ Monitor audit progress and completeness:
 # - Percentage completion
 ```
 
-## Contributing
+---
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+## License
+
+Apache 2.0 — see [LICENSE.txt](LICENSE.txt)
+
+## Acknowledgments
+
+Baskerville is built on [Hound](https://github.com/scabench-org/hound) by Bernhard Mueller (creator of [Mythril](https://github.com/Consensys/mythril)).
