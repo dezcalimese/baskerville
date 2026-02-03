@@ -7,6 +7,21 @@ Get Hound running as-is. Configure Claude as strategist. Test on a known vulnera
 
 **Status:** 🚧 In Progress
 
+**Completed:**
+- ✅ Local model support via LM Studio (LocalModelProvider)
+  - JSON extraction from markdown/thinking tags
+  - JSON repair for malformed output
+  - Auto-detection of localhost URLs
+  - Tested with GLM 4.7 flash + Qwen 8B
+- ✅ Configured for M4 Max 64GB (GLM flash for scout/strategist, Qwen 8B for lightweight)
+- ✅ Tested on Damn Vulnerable DeFi (SideEntrance) - found reentrancy vulnerabilities
+
+**Remaining:**
+- [ ] Full end-to-end audit on larger contract
+- [ ] Validate all audit modes (sweep + intuition)
+- [ ] Test session resume/continuation
+- [ ] Test report generation with findings
+
 ### Phase 2: Static Analysis Pipeline (`extensions/static/`)
 Build the static analysis pipeline. Wire Slither and Aderyn output into Hound's hypothesis system.
 
@@ -136,12 +151,28 @@ baskerville/
 
 ## Model Configuration
 
+### Cloud Models (Recommended for production)
 | Role | Model | Purpose |
 |---|---|---|
 | Scout | Claude Haiku 4 | Fast exploration, broad coverage |
 | Strategist | Claude Opus 4 | Deep reasoning, hypothesis validation |
 | PoC Generator | Claude Sonnet 4 | Code generation for exploit PoCs |
 | Report Writer | Claude Sonnet 4 | Structured report output |
+
+### Local Models (LM Studio - M4 Max 64GB)
+| Role | Model | Purpose |
+|---|---|---|
+| Scout | zai-org/glm-4.7-flash | Fast exploration, good JSON output |
+| Strategist | zai-org/glm-4.7-flash | Reasoning (or qwen3-coder-30b-a3b@4bit if RAM allows) |
+| Lightweight | qwen/qwen3-8b | Fast dedup, simple tasks, 32K context |
+| Graph | zai-org/glm-4.7-flash | Graph building, 128K context |
+
+**Local model setup:**
+```bash
+# .env
+OPENAI_API_KEY=lm-studio
+OPENAI_BASE_URL=http://localhost:1234/v1
+```
 
 ---
 
