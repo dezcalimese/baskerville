@@ -89,6 +89,55 @@ retries:
   backoff_min_seconds: 1
   backoff_max_seconds: 2
 
+# =============================================================================
+# OPTION: LM Studio (Local Models)
+# =============================================================================
+# Setup:
+#   1. Open LM Studio → load models (GLM, Qwen, Mistral, etc.)
+#   2. Go to Server tab → Start Server (runs on localhost:1234)
+#   3. Set in .env: OPENAI_API_KEY=lm-studio
+#                   OPENAI_BASE_URL=http://localhost:1234/v1
+#
+# Recommended models for M4 Max 64GB:
+#   - Scout/Strategist: zai-org/glm-4.7-flash, qwen/qwen3-8b
+#   - Lightweight: qwen/qwen3-vl-4b (very fast)
+#   - Heavy reasoning: qwen3-coder-30b-a3b@4bit (if you have RAM headroom)
+# =============================================================================
+#
+# models:
+#   graph:
+#     provider: openai
+#     model: zai-org/glm-4.7-flash
+#     max_context: 128000
+#
+#   scout:
+#     provider: openai
+#     model: zai-org/glm-4.7-flash
+#     max_context: 128000
+#
+#   strategist:
+#     provider: openai
+#     model: zai-org/glm-4.7-flash
+#     max_context: 128000
+#
+#   lightweight:
+#     provider: openai
+#     model: qwen/qwen3-vl-4b
+#
+#   finalize:
+#     provider: openai
+#     model: zai-org/glm-4.7-flash
+#
+#   reporting:
+#     provider: openai
+#     model: zai-org/glm-4.7-flash
+#
+# # Local model settings (used when OPENAI_BASE_URL points to localhost)
+# local:
+#   temperature: 0.1      # Low temp for deterministic JSON
+#   max_tokens: 4096      # Prevent runaway generation
+#   repetition_penalty: 1.3
+
 # Notes:
 # - Each model can have its own max_context setting
 # - Graph model uses large context for building iterations (sees more code)
@@ -96,3 +145,4 @@ retries:
 # - Discovery phase and building iterations use different context limits
 # - Models without max_context use the global context.max_tokens value
 # - Token counting is done using the specific model for accuracy
+# - Local models auto-detect localhost URLs and use LocalModelProvider for better JSON handling
