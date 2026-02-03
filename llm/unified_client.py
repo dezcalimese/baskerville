@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from .anthropic_provider import AnthropicProvider
 from .deepseek_provider import DeepSeekProvider
 from .gemini_provider import GeminiProvider
+from .local_provider import LocalModelProvider, is_local_url
 from .mock_provider import MockProvider
 from .openai_provider import OpenAIProvider
 from .token_tracker import get_token_tracker
@@ -93,12 +94,24 @@ class UnifiedLLMClient:
 
         # Initialize the appropriate provider
         if provider_name == "openai":
-            self.provider = OpenAIProvider(
-                **common_kwargs,
-                reasoning_effort=model_config.get("reasoning_effort"),
-                text_verbosity=model_config.get("text_verbosity"),
-                verbose=llm_verbose
-            )
+            # Check if pointing to a local server (LM Studio, Ollama, etc.)
+            import os as _os
+            base_url = _os.environ.get("OPENAI_BASE_URL") or cfg.get("openai", {}).get("base_url")
+            if is_local_url(base_url):
+                # Use local provider for better JSON handling
+                self.provider = LocalModelProvider(
+                    **common_kwargs,
+                    temperature=model_config.get("temperature"),
+                    max_tokens=model_config.get("max_tokens"),
+                    repetition_penalty=model_config.get("repetition_penalty"),
+                )
+            else:
+                self.provider = OpenAIProvider(
+                    **common_kwargs,
+                    reasoning_effort=model_config.get("reasoning_effort"),
+                    text_verbosity=model_config.get("text_verbosity"),
+                    verbose=llm_verbose
+                )
         elif provider_name == "gemini":
             self.provider = GeminiProvider(
                 **common_kwargs,

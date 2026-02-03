@@ -23,7 +23,8 @@ try:
     for _sub in [
         'client', 'unified_client', 'openai_provider', 'token_tracker',
         'gemini_provider', 'anthropic_provider', 'deepseek_provider', 'xai_provider',
-        'schemas', 'schema_definitions', 'tokenization', 'mock_provider'
+        'schemas', 'schema_definitions', 'tokenization', 'mock_provider',
+        'local_provider', 'json_repair', 'base_provider'
     ]:
         try:
             sys.modules[f'llm.{_sub}'] = importlib.import_module(f'hound.llm.{_sub}')
