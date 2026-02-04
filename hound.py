@@ -71,6 +71,10 @@ app.add_typer(solodit_app, name="solodit")
 kb_app = typer.Typer(help="Knowledge base for security auditing")
 app.add_typer(kb_app, name="kb")
 
+# Create bounty workflow subcommand group
+bounty_app = typer.Typer(help="Bounty workflow for audit contests")
+app.add_typer(bounty_app, name="bounty")
+
 # Helper to invoke Click command functions without noisy tracebacks
 def _invoke_click(cmd_func, params: dict):
     import click
@@ -1373,6 +1377,117 @@ def kb_context(
     """Get audit context for a topic (for LLM prompts)."""
     from commands.knowledge import context
     _invoke_click(context, {'topic': topic, 'protocol': protocol})
+
+
+# Bounty Workflow Commands
+# ─────────────────────────────────────────────────────────────────────────────
+
+@bounty_app.command("discover")
+def bounty_discover(
+    platform: str = typer.Option(None, "--platform", "-p", help="Specific platform to scrape"),
+    save: bool = typer.Option(False, "--save", "-s", help="Save discovered contests")
+):
+    """Discover active contests from platforms."""
+    from commands.bounty import discover
+    _invoke_click(discover, {'platform': platform, 'save': save})
+
+
+@bounty_app.command("list")
+def bounty_list(
+    active: bool = typer.Option(False, "--active", "-a", help="Show only active contests"),
+    platform: str = typer.Option(None, "--platform", "-p", help="Filter by platform"),
+    state: str = typer.Option(None, "--state", "-s", help="Filter by state")
+):
+    """List tracked contests."""
+    from commands.bounty import list_contests
+    _invoke_click(list_contests, {'active': active, 'platform': platform, 'state': state})
+
+
+@bounty_app.command("show")
+def bounty_show(
+    contest_id: str = typer.Argument(..., help="Contest ID")
+):
+    """Show contest details."""
+    from commands.bounty import show
+    _invoke_click(show, {'contest_id': contest_id})
+
+
+@bounty_app.command("add")
+def bounty_add(
+    url: str = typer.Argument(..., help="Contest URL"),
+    platform: str = typer.Option(None, "--platform", "-p", help="Platform (auto-detected if not specified)"),
+    name: str = typer.Option(None, "--name", "-n", help="Contest name")
+):
+    """Add a contest manually."""
+    from commands.bounty import add
+    _invoke_click(add, {'url': url, 'platform': platform, 'name': name})
+
+
+@bounty_app.command("link")
+def bounty_link(
+    contest_id: str = typer.Argument(..., help="Contest ID"),
+    project_name: str = typer.Argument(..., help="Hound project name")
+):
+    """Link contest to a Hound project."""
+    from commands.bounty import link
+    _invoke_click(link, {'contest_id': contest_id, 'project_name': project_name})
+
+
+@bounty_app.command("import")
+def bounty_import(
+    contest_id: str = typer.Argument(..., help="Contest ID"),
+    force: bool = typer.Option(False, "--force", "-f", help="Re-import all findings")
+):
+    """Import findings from linked Hound project."""
+    from commands.bounty import import_findings
+    _invoke_click(import_findings, {'contest_id': contest_id, 'force': force})
+
+
+@bounty_app.command("review")
+def bounty_review(
+    contest_id: str = typer.Argument(..., help="Contest ID"),
+    severity: str = typer.Option(None, "--severity", "-s", help="Filter by severity")
+):
+    """Interactive review workflow for findings."""
+    from commands.bounty import review
+    _invoke_click(review, {'contest_id': contest_id, 'severity': severity})
+
+
+@bounty_app.command("export")
+def bounty_export(
+    contest_id: str = typer.Argument(..., help="Contest ID"),
+    output: str = typer.Option(None, "--output", "-o", help="Output directory"),
+    fmt: str = typer.Option("individual", "--format", "-f", help="Export format (individual, report, both)")
+):
+    """Export findings for platform submission."""
+    from commands.bounty import export
+    _invoke_click(export, {'contest_id': contest_id, 'output': output, 'fmt': fmt})
+
+
+@bounty_app.command("submit")
+def bounty_submit(
+    contest_id: str = typer.Argument(..., help="Contest ID"),
+    notes: str = typer.Option(None, "--notes", "-n", help="Submission notes")
+):
+    """Mark contest as submitted (manual confirmation)."""
+    from commands.bounty import submit
+    _invoke_click(submit, {'contest_id': contest_id, 'notes': notes})
+
+
+@bounty_app.command("stats")
+def bounty_stats():
+    """Show bounty statistics."""
+    from commands.bounty import stats
+    _invoke_click(stats, {})
+
+
+@bounty_app.command("archive")
+def bounty_archive(
+    contest_id: str = typer.Argument(..., help="Contest ID")
+):
+    """Archive a contest."""
+    from commands.bounty import archive
+    _invoke_click(archive, {'contest_id': contest_id})
 
 
 @app.command()
