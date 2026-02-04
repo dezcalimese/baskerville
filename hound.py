@@ -63,6 +63,10 @@ app.add_typer(graph_app, name="graph")
 graphs_app = typer.Typer(help="Bulk graph operations (all graphs)")
 app.add_typer(graphs_app, name="graphs")
 
+# Create solodit subcommand group
+solodit_app = typer.Typer(help="Solodit vulnerability database integration")
+app.add_typer(solodit_app, name="solodit")
+
 # Helper to invoke Click command functions without noisy tracebacks
 def _invoke_click(cmd_func, params: dict):
     import click
@@ -1227,9 +1231,75 @@ def poc_list(
 ):
     """List all imported PoCs for a project."""
     from commands.poc import list_pocs
-    
+
     # Run list command
     list_pocs(project)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Solodit Commands
+# ─────────────────────────────────────────────────────────────────────────────
+
+@solodit_app.command("search")
+def solodit_search(
+    query: str = typer.Argument(..., help="Search keywords"),
+    impact: str = typer.Option(None, "--impact", "-i", help="Filter by impact (HIGH, MEDIUM, LOW, GAS)"),
+    tag: list[str] = typer.Option(None, "--tag", "-t", help="Filter by tag (can specify multiple)"),
+    firm: list[str] = typer.Option(None, "--firm", "-f", help="Filter by audit firm (can specify multiple)"),
+    limit: int = typer.Option(20, "--limit", "-l", help="Maximum results"),
+    page: int = typer.Option(1, "--page", "-p", help="Page number"),
+    sort: str = typer.Option("Recency", "--sort", "-s", help="Sort by (Recency, Quality, Rarity)")
+):
+    """Search Solodit vulnerability database."""
+    from commands.solodit import search
+    _invoke_click(search, {
+        'query': query,
+        'impact': impact,
+        'tag': tuple(tag) if tag else (),
+        'firm': tuple(firm) if firm else (),
+        'limit': limit,
+        'page': page,
+        'sort': sort
+    })
+
+
+@solodit_app.command("checklist")
+def solodit_checklist(
+    category: str = typer.Option(None, "--category", "-c", help="Filter by category (e.g., reentrancy, access-control)"),
+    refresh: bool = typer.Option(False, "--refresh", help="Force refresh from GitHub")
+):
+    """View Solodit security checklist."""
+    from commands.solodit import checklist
+    _invoke_click(checklist, {
+        'category': category,
+        'refresh': refresh
+    })
+
+
+@solodit_app.command("enrich")
+def solodit_enrich(
+    project_name: str = typer.Argument(..., help="Project name"),
+    limit: int = typer.Option(5, "--limit", "-l", help="Max similar findings per hypothesis")
+):
+    """Enrich project hypotheses with Solodit context."""
+    from commands.solodit import enrich
+    _invoke_click(enrich, {
+        'project_name': project_name,
+        'limit': limit
+    })
+
+
+@solodit_app.command("intel")
+def solodit_intel(
+    category: str = typer.Argument(..., help="Protocol category (lending, amm, vault, governance, etc.)"),
+    limit: int = typer.Option(20, "--limit", "-l", help="Max findings to retrieve")
+):
+    """Get pre-audit intelligence for a protocol category."""
+    from commands.solodit import intel
+    _invoke_click(intel, {
+        'category': category,
+        'limit': limit
+    })
 
 
 @app.command()
