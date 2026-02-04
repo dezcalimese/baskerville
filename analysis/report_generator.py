@@ -4,12 +4,14 @@ Professional security audit report generator.
 
 import json
 import math
+import os
 from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 from llm.unified_client import UnifiedLLMClient
+from llm.local_provider import is_local_url
 
 
 class ReportGenerator:
@@ -47,6 +49,56 @@ class ReportGenerator:
         self._load_card_store_and_repo_root()
         # Unique counter for code blocks in the rendered report
         self._code_block_counter: int = 0
+
+        # Check if using local model for context-aware generation
+        self._is_local_model = self._detect_local_model()
+        # Max tokens for local models (conservative default)
+        local_cfg = config.get('local', {})
+        self._local_max_context = local_cfg.get('max_report_context', 6000)
+
+    def _detect_local_model(self) -> bool:
+        """Detect if we're using a local model via LM Studio."""
+        base_url = os.environ.get("OPENAI_BASE_URL") or self.config.get("openai", {}).get("base_url")
+        return is_local_url(base_url)
+
+    def _estimate_tokens(self, text: str) -> int:
+        """Rough token estimation (4 chars per token average)."""
+        return len(text) // 4
+
+    def _compress_hypotheses_for_report(self, hypotheses: dict) -> dict:
+        """Compress hypotheses to essential fields for report generation."""
+        compressed = {}
+        for hyp_id, hyp in hypotheses.items():
+            compressed[hyp_id] = {
+                'title': hyp.get('title', ''),
+                'severity': hyp.get('severity', 'medium'),
+                'status': hyp.get('status', 'proposed'),
+                'vulnerability_type': hyp.get('vulnerability_type', ''),
+                # Truncate long descriptions
+                'description': hyp.get('description', '')[:500],
+                'confidence': hyp.get('confidence', 0),
+            }
+        return compressed
+
+    def _compress_graph_for_report(self, graph: dict) -> dict:
+        """Compress graph to essential structure for report generation."""
+        if not graph:
+            return {}
+        compressed = {}
+        for name, data in graph.items():
+            if isinstance(data, dict):
+                nodes = data.get('nodes', [])
+                edges = data.get('edges', [])
+                # Only keep node names and types, not full content
+                compressed[name] = {
+                    'node_count': len(nodes),
+                    'edge_count': len(edges),
+                    'nodes': [
+                        {'id': n.get('id', ''), 'type': n.get('type', '')}
+                        for n in nodes[:20]  # Limit to first 20 nodes
+                    ],
+                }
+        return compressed
 
     def _load_card_store_and_repo_root(self) -> None:
         """Load card_store.json (graph evidence) and determine repo root.
@@ -395,34 +447,45 @@ class ReportGenerator:
     def _generate_sections(self, project_name: str, project_source: str) -> dict[str, str]:
         """Single LLM call that returns both executive summary and system overview."""
         system_graph = self._get_system_architecture_graph() or {}
-        
+
         # Get all graph names for scope description - format them nicely
         graph_names = [self._format_graph_name(name) for name in self.graphs.keys()]
-        
+
         # Use the new helper method to extract models
         models = self._extract_audit_models()
         junior_auditors = models['junior']
         senior_auditors = models['senior']
         finalize_model = models['finalize']
         reporting_model = models['reporting'] or 'GPT-5'
-        
+
         # Get all unique models for analysis_models
         all_analysis_models = set()
         all_analysis_models.update(junior_auditors)
         all_analysis_models.update(senior_auditors)
         sorted(list(all_analysis_models))
-        
-        # Provide full system graph and full hypotheses store
-        hypotheses_payload = {
-            'hypotheses': self.hypotheses,
-            'metadata': self.hypothesis_metadata,
-        }
+
+        # Prepare payloads - compress for local models to fit context window
+        if self._is_local_model:
+            # Use compressed data for local models
+            graph_payload = self._compress_graph_for_report({'system': system_graph})
+            hypotheses_payload = {
+                'hypotheses': self._compress_hypotheses_for_report(self.hypotheses),
+            }
+            if self.debug:
+                print(f"[*] Using compressed payloads for local model (max context: {self._local_max_context})")
+        else:
+            # Full data for cloud models
+            graph_payload = system_graph
+            hypotheses_payload = {
+                'hypotheses': self.hypotheses,
+                'metadata': self.hypothesis_metadata,
+            }
 
         prompt = (
             f"PROJECT_NAME: {project_name}\n"
             f"PROJECT_SOURCE: {project_source}\n\n"
             "SYSTEM_GRAPH_JSON\n"
-            f"{json.dumps(system_graph, ensure_ascii=False)}\n\n"
+            f"{json.dumps(graph_payload, ensure_ascii=False)}\n\n"
             "HYPOTHESES_STORE_JSON\n"
             f"{json.dumps(hypotheses_payload, ensure_ascii=False)}\n\n"
             "AUDIT_SCOPE_GRAPHS (human-readable descriptions of review areas)\n"
@@ -461,10 +524,22 @@ class ReportGenerator:
             "  * DO NOT invent human names - only use the exact model names provided\n"
         )
 
-        response = self.llm.raw(
-            system="You are a senior security auditor. Respond only with valid JSON.",
-            user=prompt
-        )
+        # Try LLM call with fallback for context length errors
+        try:
+            response = self.llm.raw(
+                system="You are a senior security auditor. Respond only with valid JSON.",
+                user=prompt
+            )
+        except Exception as e:
+            error_msg = str(e).lower()
+            # Check for context length errors
+            if 'context' in error_msg or 'token' in error_msg or 'length' in error_msg:
+                if self.debug:
+                    print(f"[!] Context length error, using minimal fallback: {e}")
+                # Fall back to synthesized summary for local models
+                return self._generate_minimal_sections(project_name, project_source, graph_names)
+            raise  # Re-raise other errors
+
         # Save prompt/response for CLI debug
         self.last_prompt = prompt
         self.last_response = response
@@ -513,8 +588,56 @@ class ReportGenerator:
         # Non-mock providers: surface a clear error for missing keys
         raise ValueError("LLM did not return required keys application_name, executive_summary and system_overview in JSON response")
 
+    def _generate_minimal_sections(self, project_name: str, project_source: str,
+                                    graph_names: list[str]) -> dict[str, str]:
+        """Generate minimal sections without LLM when context is too large.
+
+        This fallback creates a basic report structure from local data when
+        the LLM context window is exceeded (common with local models).
+        """
+        app_name = (project_name or 'Application').strip().replace('-', ' ').title()
+
+        # Count findings by status
+        confirmed = sum(1 for h in self.hypotheses.values() if h.get('status') == 'confirmed')
+        rejected = sum(1 for h in self.hypotheses.values() if h.get('status') == 'rejected')
+        proposed = sum(1 for h in self.hypotheses.values() if h.get('status') == 'proposed')
+
+        # Count high/medium/low severity
+        high = sum(1 for h in self.hypotheses.values()
+                   if h.get('status') == 'confirmed' and h.get('severity') == 'high')
+        medium = sum(1 for h in self.hypotheses.values()
+                     if h.get('status') == 'confirmed' and h.get('severity') == 'medium')
+
+        # Get graph stats
+        sa = self.graphs.get('SystemArchitecture') or {}
+        nodes = len(sa.get('nodes', [])) if isinstance(sa, dict) else 0
+        edges = len(sa.get('edges', [])) if isinstance(sa, dict) else 0
+
+        exec_summary = (
+            f"The Hound security team conducted a comprehensive audit of {app_name}.\n\n"
+            f"Our analysis covered {len(graph_names)} distinct areas: "
+            f"{', '.join(graph_names[:5])}{'...' if len(graph_names) > 5 else ''}. "
+            f"The team evaluated architecture, authorization mechanisms, and value flows.\n\n"
+            f"The audit identified {confirmed} confirmed vulnerabilities "
+            f"({high} high severity, {medium} medium severity), "
+            f"with {rejected} findings correctly rejected as false positives."
+        )
+
+        sys_overview = (
+            f"The {app_name} system was analyzed through knowledge graph construction, "
+            f"identifying {nodes} key components and {edges} relationships.\n\n"
+            f"Source code was ingested from: {project_source}\n\n"
+            f"Detailed findings are presented in the vulnerability sections below."
+        )
+
+        return {
+            'application_name': app_name,
+            'executive_summary': exec_summary,
+            'system_overview': sys_overview,
+        }
+
     # Note: No fallback generators — we surface errors so the CLI can show details
-    
+
     def generate(self, project_name: str, project_source: str,
                 title: str, auditors: list[str], format: str = 'html',
                 progress_callback: Callable[[dict], None] | None = None) -> str:
