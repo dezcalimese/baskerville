@@ -1153,6 +1153,41 @@ def report(
         raise typer.Exit(e.code if hasattr(e, 'code') else 1)
 
 
+@app.command("static")
+def static_analysis(
+    project: str = typer.Argument(..., help="Project name"),
+    tool: str = typer.Option("all", "--tool", "-t", help="Tool to run: slither, aderyn, or all"),
+    import_hypotheses: bool = typer.Option(False, "--import", "-i", help="Import findings into hypothesis store"),
+    min_severity: str = typer.Option("low", "--min-severity", "-s", help="Minimum severity: high, medium, low, info"),
+    no_dedup: bool = typer.Option(False, "--no-dedup", help="Disable deduplication across tools"),
+    debug: bool = typer.Option(False, "--debug", help="Show debug information"),
+):
+    """Run static analysis (Slither/Aderyn) on a project."""
+    import click
+
+    from commands.static import static as static_command
+
+    console.print("[bold cyan]Running static analysis...[/bold cyan]")
+
+    # Create Click context and invoke
+    ctx = click.Context(static_command)
+    ctx.params = {
+        'project_name': project,
+        'tool': tool,
+        'import_hypotheses': import_hypotheses,
+        'min_severity': min_severity,
+        'no_dedup': no_dedup,
+        'debug': debug,
+    }
+
+    try:
+        static_command.invoke(ctx)
+    except click.exceptions.Exit as e:
+        raise typer.Exit(e.exit_code)
+    except SystemExit as e:
+        raise typer.Exit(e.code if hasattr(e, 'code') else 1)
+
+
 @poc_app.command("make-prompt")
 def poc_make_prompt(
     project: str = typer.Argument(..., help="Project name"),
