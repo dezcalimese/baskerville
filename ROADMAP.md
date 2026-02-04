@@ -35,7 +35,21 @@ Build the static analysis pipeline. Wire Slither and Aderyn output into Hound's 
 
 Pipeline output feeds into Hound's hypothesis system as initial observations.
 
-**Status:** Planned
+**Status:** ✅ Complete
+
+**Completed:**
+- ✅ Slither runner with JSON parsing, venv detection, project root finding
+- ✅ Aderyn runner with Foundry/Hardhat project root detection
+- ✅ Pipeline orchestrator with deduplication across tools
+- ✅ CLI command: `./hound.py static <project> [--import]`
+- ✅ Hypothesis import to store
+- ✅ AST patterns stub (future expansion)
+
+**Installation:**
+```bash
+uv pip install slither-analyzer  # or pip install slither-analyzer
+npm install -g @cyfrin/aderyn    # or cyfrinup
+```
 
 ### Phase 3: Solodit Integration (`extensions/solodit/`)
 Build the Solodit integration. Start with the MCP server bridge (available now), add REST API client when beta access is granted.
