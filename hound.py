@@ -67,6 +67,10 @@ app.add_typer(graphs_app, name="graphs")
 solodit_app = typer.Typer(help="Solodit vulnerability database integration")
 app.add_typer(solodit_app, name="solodit")
 
+# Create knowledge base subcommand group
+kb_app = typer.Typer(help="Knowledge base for security auditing")
+app.add_typer(kb_app, name="kb")
+
 # Helper to invoke Click command functions without noisy tracebacks
 def _invoke_click(cmd_func, params: dict):
     import click
@@ -1300,6 +1304,75 @@ def solodit_intel(
         'category': category,
         'limit': limit
     })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Knowledge Base Commands
+# ─────────────────────────────────────────────────────────────────────────────
+
+@kb_app.command("search")
+def kb_search(
+    query: str = typer.Argument(..., help="Search query"),
+    limit: int = typer.Option(20, "--limit", "-l", help="Maximum results per category")
+):
+    """Search the knowledge base."""
+    from commands.knowledge import search
+    _invoke_click(search, {'query': query, 'limit': limit})
+
+
+@kb_app.command("checklist")
+def kb_checklist(
+    category: str = typer.Option(None, "--category", "-c", help="Filter by category"),
+    source: str = typer.Option("all", "--source", "-s", help="Filter by source (all, solodit, custom)"),
+    limit: int = typer.Option(20, "--limit", "-l", help="Maximum results")
+):
+    """View security checklists."""
+    from commands.knowledge import checklist
+    _invoke_click(checklist, {'category': category, 'source': source, 'limit': limit})
+
+
+@kb_app.command("categories")
+def kb_categories():
+    """List all checklist categories."""
+    from commands.knowledge import categories
+    _invoke_click(categories, {})
+
+
+@kb_app.command("tips")
+def kb_tips(
+    category: str = typer.Option(None, "--category", "-c", help="Filter by category"),
+    priority: str = typer.Option(None, "--priority", "-p", help="Filter by priority (high, medium, low)")
+):
+    """View auditor tips and heuristics."""
+    from commands.knowledge import tips
+    _invoke_click(tips, {'category': category, 'priority': priority})
+
+
+@kb_app.command("template")
+def kb_template(
+    vuln_type: str = typer.Argument(..., help="Vulnerability type"),
+    list_only: bool = typer.Option(False, "--list", "-l", help="List available templates")
+):
+    """Get PoC template for a vulnerability type."""
+    from commands.knowledge import template
+    _invoke_click(template, {'vuln_type': vuln_type, 'list_only': list_only})
+
+
+@kb_app.command("stats")
+def kb_stats():
+    """Show knowledge base statistics."""
+    from commands.knowledge import stats
+    _invoke_click(stats, {})
+
+
+@kb_app.command("context")
+def kb_context(
+    topic: str = typer.Argument(..., help="Topic to get context for"),
+    protocol: bool = typer.Option(False, "--protocol", "-p", help="Treat topic as protocol type")
+):
+    """Get audit context for a topic (for LLM prompts)."""
+    from commands.knowledge import context
+    _invoke_click(context, {'topic': topic, 'protocol': protocol})
 
 
 @app.command()

@@ -1,0 +1,153 @@
+category: DeFi Protocols
+description: Checks specific to DeFi protocols (lending, AMM, vaults)
+
+items:
+  - id: DEFI-01
+    subcategory: Lending
+    question: Can liquidation be DoS'd by frontrunning or dust amounts?
+    description: |
+      Attackers may frontrun liquidations to repay dust amounts, or manipulate
+      health factors to prevent liquidation. Check liquidation boundaries.
+    severity: high
+    tags: [defi, lending, liquidation, DoS]
+    references: []
+
+  - id: DEFI-02
+    subcategory: Lending
+    question: Is there a minimum borrow amount to prevent dust positions?
+    description: |
+      Tiny positions may be unprofitable to liquidate, leaving bad debt.
+      Enforce minimum borrow amounts.
+    severity: medium
+    tags: [defi, lending, dust, minimum]
+    references: []
+
+  - id: DEFI-03
+    subcategory: Lending
+    question: Is the interest rate model susceptible to manipulation?
+    description: |
+      Interest rates based on utilization can be manipulated by large deposits
+      or borrows. Check for rate caps and smooth curves.
+    severity: medium
+    tags: [defi, lending, interest-rate, utilization]
+    references: []
+
+  - id: DEFI-04
+    subcategory: Lending
+    question: Can bad debt accumulate faster than it's socialized?
+    description: |
+      Protocols need mechanisms to handle bad debt (insurance funds, socialization).
+      Verify bad debt handling doesn't create cascading failures.
+    severity: high
+    tags: [defi, lending, bad-debt, socialization]
+    references: []
+
+  - id: DEFI-05
+    subcategory: AMM
+    question: Is slippage protection implemented correctly?
+    description: |
+      Check for minimum output amount parameters. Ensure they're not ignored
+      or set too loosely by default.
+    severity: high
+    tags: [defi, AMM, slippage, MEV]
+    references: []
+
+  - id: DEFI-06
+    subcategory: AMM
+    question: Is there deadline protection on swaps?
+    description: |
+      Transactions without deadlines can be held by miners and executed later
+      at unfavorable prices. Always check block.timestamp against deadline.
+    severity: medium
+    tags: [defi, AMM, deadline, timestamp]
+    references: []
+
+  - id: DEFI-07
+    subcategory: AMM
+    question: Can liquidity be added/removed to manipulate pool ratios?
+    description: |
+      Flash-adding liquidity can manipulate pool ratios for profit.
+      Consider LP token lock periods or fee mechanisms.
+    severity: high
+    tags: [defi, AMM, liquidity, manipulation]
+    references: []
+
+  - id: DEFI-08
+    subcategory: Vault
+    question: Is the vault susceptible to inflation attacks?
+    description: |
+      Empty or low-share vaults can be attacked by donating assets to steal
+      the first deposit. Use virtual shares or minimum deposit amounts.
+    severity: critical
+    tags: [defi, vault, ERC4626, inflation-attack]
+    references: []
+
+  - id: DEFI-09
+    subcategory: Vault
+    question: Is share/asset conversion rounding handled correctly?
+    description: |
+      Rounding in convertToShares/convertToAssets should favor the vault
+      to prevent extraction attacks. Check all conversion math.
+    severity: high
+    tags: [defi, vault, ERC4626, rounding]
+    references: []
+
+  - id: DEFI-10
+    subcategory: Vault
+    question: Can the vault be exploited through deposit/withdraw sandwiching?
+    description: |
+      MEV searchers can sandwich vault deposits/withdrawals when share price
+      is derived from manipulable on-chain data.
+    severity: high
+    tags: [defi, vault, sandwich, MEV]
+    references: []
+
+  - id: DEFI-11
+    subcategory: Vault
+    question: Is there a withdrawal queue or delay for large withdrawals?
+    description: |
+      Large instant withdrawals can destabilize yield strategies or create
+      unfavorable conditions for remaining depositors.
+    severity: medium
+    tags: [defi, vault, withdrawal, queue]
+    references: []
+
+  - id: DEFI-12
+    subcategory: Flash Loans
+    question: Can the protocol be attacked using flash loans?
+    description: |
+      Flash loans provide capital for single-transaction attacks. Review all
+      price dependencies and state that could be manipulated atomically.
+    severity: critical
+    tags: [defi, flash-loan, manipulation]
+    references: []
+
+  - id: DEFI-13
+    subcategory: Staking
+    question: Can reward distribution be gamed by just-in-time staking?
+    description: |
+      Stakers may deposit right before rewards, claim, and withdraw.
+      Use time-weighted rewards or lock periods.
+    severity: medium
+    tags: [defi, staking, rewards, timing]
+    references: []
+
+  - id: DEFI-14
+    subcategory: Staking
+    question: Is there a minimum stake or lock period?
+    description: |
+      Dust stakes may be unprofitable to process. Lock periods prevent
+      gaming of reward distribution.
+    severity: low
+    tags: [defi, staking, minimum, lock]
+    references: []
+
+  - id: DEFI-15
+    subcategory: Governance
+    question: Can flash loans be used to vote?
+    description: |
+      Protocols using token balances for voting power may be vulnerable
+      to flash loan governance attacks. Use checkpointed balances.
+    severity: high
+    tags: [defi, governance, flash-loan, voting]
+    references: []

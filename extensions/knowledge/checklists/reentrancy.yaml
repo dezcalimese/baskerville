@@ -1,0 +1,108 @@
+category: Reentrancy
+description: Checks for reentrancy vulnerabilities in smart contracts
+
+items:
+  - id: REEN-01
+    subcategory: Classic Reentrancy
+    question: Are state changes made BEFORE external calls?
+    description: |
+      The checks-effects-interactions pattern requires all state changes
+      to happen before any external calls. Failing to follow this pattern
+      can lead to reentrancy attacks.
+    severity: critical
+    tags: [reentrancy, external-call, CEI]
+    references:
+      - https://consensys.github.io/smart-contract-best-practices/attacks/reentrancy/
+
+  - id: REEN-02
+    subcategory: Classic Reentrancy
+    question: Is there a reentrancy guard on functions that make external calls?
+    description: |
+      Functions that transfer ETH or make external calls to untrusted contracts
+      should use a reentrancy guard (nonReentrant modifier).
+    severity: high
+    tags: [reentrancy, nonReentrant, modifier]
+    references:
+      - https://docs.openzeppelin.com/contracts/4.x/api/security#ReentrancyGuard
+
+  - id: REEN-03
+    subcategory: Cross-Function Reentrancy
+    question: Can an attacker reenter a different function that shares state?
+    description: |
+      Cross-function reentrancy occurs when an attacker reenters a different
+      function that modifies the same state variables, bypassing single-function guards.
+    severity: critical
+    tags: [reentrancy, cross-function, state]
+    references:
+      - https://medium.com/coinmonks/protect-your-solidity-smart-contracts-from-reentrancy-attacks-9972c3af7c21
+
+  - id: REEN-04
+    subcategory: Cross-Contract Reentrancy
+    question: Can reentrancy occur through callbacks to other contracts in the protocol?
+    description: |
+      Cross-contract reentrancy happens when Contract A calls Contract B,
+      which then calls back into Contract A (or another contract that affects A's state).
+    severity: critical
+    tags: [reentrancy, cross-contract, callback]
+    references: []
+
+  - id: REEN-05
+    subcategory: Read-Only Reentrancy
+    question: Are view functions used to read state that could be stale during reentrancy?
+    description: |
+      Read-only reentrancy exploits view functions that return stale state
+      during a reentrant call, often in price oracles or balance checks.
+    severity: high
+    tags: [reentrancy, read-only, view, oracle]
+    references:
+      - https://chainsecurity.com/curve-lp-oracle-manipulation-post-mortem/
+
+  - id: REEN-06
+    subcategory: ERC721/ERC1155 Callbacks
+    question: Do ERC721/ERC1155 safe transfers trigger callbacks that could be exploited?
+    description: |
+      safeTransferFrom triggers onERC721Received/onERC1155Received callbacks
+      on the recipient, which can be used for reentrancy attacks.
+    severity: high
+    tags: [reentrancy, ERC721, ERC1155, callback, safeTransfer]
+    references: []
+
+  - id: REEN-07
+    subcategory: ERC777 Hooks
+    question: Are ERC777 token hooks (tokensReceived, tokensToSend) handled safely?
+    description: |
+      ERC777 tokens have send/receive hooks that execute before balances update,
+      creating reentrancy opportunities even in simple transfer operations.
+    severity: high
+    tags: [reentrancy, ERC777, hooks, tokensReceived]
+    references: []
+
+  - id: REEN-08
+    subcategory: Flash Loan Reentrancy
+    question: Can flash loan callbacks be exploited for reentrancy?
+    description: |
+      Flash loan callbacks (executeOperation, uniswapV3FlashCallback, etc.)
+      give attackers execution context that can be used for reentrancy.
+    severity: high
+    tags: [reentrancy, flash-loan, callback]
+    references: []
+
+  - id: REEN-09
+    subcategory: Governance Reentrancy
+    question: Can governance execution callbacks be exploited?
+    description: |
+      Governance systems that execute arbitrary calls can be vulnerable
+      to reentrancy through proposal execution callbacks.
+    severity: high
+    tags: [reentrancy, governance, execution]
+    references: []
+
+  - id: REEN-10
+    subcategory: Reentrancy Detection
+    question: Are all external call sites identified and reviewed?
+    description: |
+      External calls include: call, delegatecall, staticcall, transfer, send,
+      and calls to interfaces/external contracts.
+    severity: medium
+    tags: [reentrancy, external-call, review]
+    references: []

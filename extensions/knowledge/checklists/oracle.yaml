@@ -1,0 +1,123 @@
+category: Oracle & Price Feeds
+description: Checks for oracle manipulation and price feed vulnerabilities
+
+items:
+  - id: ORC-01
+    subcategory: Price Manipulation
+    question: Can the price oracle be manipulated within a single transaction?
+    description: |
+      Spot prices from AMMs can be manipulated via flash loans. Use TWAP,
+      Chainlink, or other manipulation-resistant price sources.
+    severity: critical
+    tags: [oracle, price, manipulation, flash-loan]
+    references: []
+
+  - id: ORC-02
+    subcategory: Price Manipulation
+    question: Is the TWAP window long enough to prevent manipulation?
+    description: |
+      Short TWAP windows (< 30 min) can still be manipulated by attackers
+      willing to hold positions. Consider longer windows for large protocols.
+    severity: high
+    tags: [oracle, TWAP, window]
+    references: []
+
+  - id: ORC-03
+    subcategory: Chainlink
+    question: Is there a check for stale Chainlink price data?
+    description: |
+      Check updatedAt timestamp against a maximum staleness threshold.
+      Different assets may need different thresholds.
+    severity: high
+    tags: [oracle, Chainlink, staleness, timestamp]
+    references: []
+
+  - id: ORC-04
+    subcategory: Chainlink
+    question: Is there a check for Chainlink price returning zero?
+    description: |
+      Chainlink can return 0 in edge cases. Always validate that
+      answer > 0 before using the price.
+    severity: high
+    tags: [oracle, Chainlink, zero, validation]
+    references: []
+
+  - id: ORC-05
+    subcategory: Chainlink
+    question: Are Chainlink round completeness checks implemented?
+    description: |
+      Check answeredInRound >= roundId to ensure the price is from a
+      completed round, not a stale one.
+    severity: medium
+    tags: [oracle, Chainlink, round, completeness]
+    references: []
+
+  - id: ORC-06
+    subcategory: Chainlink
+    question: Is the correct Chainlink price feed being used?
+    description: |
+      Different feeds exist for the same asset (USD vs ETH denomination,
+      different decimals). Verify the feed matches expectations.
+    severity: high
+    tags: [oracle, Chainlink, feed, decimals]
+    references: []
+
+  - id: ORC-07
+    subcategory: Chainlink
+    question: Are Chainlink price feed decimals handled correctly?
+    description: |
+      Different feeds have different decimals (8 for USD feeds, 18 for ETH).
+      Normalize before comparing or combining prices.
+    severity: high
+    tags: [oracle, Chainlink, decimals, normalization]
+    references: []
+
+  - id: ORC-08
+    subcategory: L2 Sequencer
+    question: Is there a check for L2 sequencer uptime on Arbitrum/Optimism?
+    description: |
+      On L2s, if the sequencer is down, Chainlink prices may be stale.
+      Check the sequencer uptime feed before using prices.
+    severity: high
+    tags: [oracle, Chainlink, L2, sequencer, Arbitrum, Optimism]
+    references: []
+
+  - id: ORC-09
+    subcategory: LP Token Pricing
+    question: Are LP tokens priced using manipulation-resistant methods?
+    description: |
+      LP token pricing via totalSupply/reserves is manipulable.
+      Use fair LP pricing formulas that account for manipulation.
+    severity: high
+    tags: [oracle, LP, AMM, pricing]
+    references: []
+
+  - id: ORC-10
+    subcategory: Fallback Oracle
+    question: Is there a fallback oracle if the primary fails?
+    description: |
+      Single oracle dependency is risky. Consider fallback oracles
+      or circuit breakers when primary oracle fails.
+    severity: medium
+    tags: [oracle, fallback, redundancy]
+    references: []
+
+  - id: ORC-11
+    subcategory: Price Bounds
+    question: Are there sanity checks on oracle prices (min/max bounds)?
+    description: |
+      Extreme prices (very high or near zero) may indicate oracle failure.
+      Implement reasonable bounds as a safety net.
+    severity: medium
+    tags: [oracle, bounds, validation]
+    references: []
+
+  - id: ORC-12
+    subcategory: Cross-Asset Oracle
+    question: Are prices from different sources properly normalized?
+    description: |
+      When combining prices from multiple oracles (e.g., ETH/USD from Chainlink,
+      token/ETH from Uniswap), ensure decimal and base conversions are correct.
+    severity: high
+    tags: [oracle, cross-asset, normalization]
+    references: []

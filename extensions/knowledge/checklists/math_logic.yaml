@@ -1,0 +1,143 @@
+category: Math & Logic
+description: Checks for mathematical and logical vulnerabilities
+
+items:
+  - id: MATH-01
+    subcategory: Precision Loss
+    question: Is division performed before multiplication?
+    description: |
+      Division before multiplication causes precision loss in Solidity.
+      Always multiply first, then divide.
+    severity: high
+    tags: [math, precision, division, multiplication]
+    references: []
+
+  - id: MATH-02
+    subcategory: Precision Loss
+    question: Are there sufficient decimal places for calculations?
+    description: |
+      Low decimal precision can cause rounding to zero for small amounts.
+      Use 18 decimals or higher precision for intermediate calculations.
+    severity: medium
+    tags: [math, precision, decimals, rounding]
+    references: []
+
+  - id: MATH-03
+    subcategory: Rounding
+    question: Does rounding favor the protocol over users where appropriate?
+    description: |
+      Rounding should generally favor the protocol to prevent extraction.
+      Round down for user claims, round up for user payments.
+    severity: high
+    tags: [math, rounding, favor, extraction]
+    references: []
+
+  - id: MATH-04
+    subcategory: Overflow/Underflow
+    question: Is unchecked arithmetic used safely?
+    description: |
+      Solidity 0.8+ has built-in overflow protection, but unchecked blocks
+      bypass it. Verify unchecked arithmetic can't overflow/underflow.
+    severity: high
+    tags: [math, overflow, underflow, unchecked]
+    references: []
+
+  - id: MATH-05
+    subcategory: Overflow/Underflow
+    question: Are there checks for type casting overflows?
+    description: |
+      Casting between integer sizes (uint256 to uint128) can silently overflow.
+      Use SafeCast or explicit checks.
+    severity: high
+    tags: [math, overflow, casting, SafeCast]
+    references: []
+
+  - id: MATH-06
+    subcategory: Division by Zero
+    question: Are there checks for division by zero?
+    description: |
+      Division by zero reverts, which could DoS the contract if denominator
+      can be zero through manipulation.
+    severity: medium
+    tags: [math, division, zero, DoS]
+    references: []
+
+  - id: MATH-07
+    subcategory: Logic Errors
+    question: Are comparison operators correct (< vs <=)?
+    description: |
+      Off-by-one errors in comparisons are common. Review boundary conditions
+      carefully, especially for time-based or balance-based checks.
+    severity: medium
+    tags: [logic, comparison, off-by-one, boundary]
+    references: []
+
+  - id: MATH-08
+    subcategory: Logic Errors
+    question: Are require/revert conditions correct (not inverted)?
+    description: |
+      Inverted conditions (should be >= but is <=) are easy to miss
+      during review. Verify all conditions match intent.
+    severity: high
+    tags: [logic, require, revert, condition]
+    references: []
+
+  - id: MATH-09
+    subcategory: Logic Errors
+    question: Are short-circuit evaluations handled correctly?
+    description: |
+      Solidity short-circuits && and ||. Ensure required side effects
+      don't depend on evaluation order.
+    severity: medium
+    tags: [logic, short-circuit, evaluation]
+    references: []
+
+  - id: MATH-10
+    subcategory: Token Math
+    question: Are different token decimals handled correctly?
+    description: |
+      Tokens have varying decimals (6 for USDC, 18 for ETH). Normalize
+      amounts before comparison or calculation.
+    severity: high
+    tags: [math, token, decimals, normalization]
+    references: []
+
+  - id: MATH-11
+    subcategory: Token Math
+    question: Is there a check for fee-on-transfer tokens?
+    description: |
+      Fee-on-transfer tokens deliver less than the input amount.
+      Use balanceAfter - balanceBefore pattern instead of amount.
+    severity: high
+    tags: [math, token, fee-on-transfer, balance]
+    references: []
+
+  - id: MATH-12
+    subcategory: Token Math
+    question: Is there a check for rebasing tokens?
+    description: |
+      Rebasing tokens change balances automatically. Caching balances
+      may lead to accounting errors.
+    severity: high
+    tags: [math, token, rebasing, balance]
+    references: []
+
+  - id: MATH-13
+    subcategory: Percentage Calculations
+    question: Are percentage calculations (basis points, ratios) correct?
+    description: |
+      Common issues: using wrong base (1e4 vs 1e6), forgetting to scale,
+      applying fee multiple times. Verify all percentage math.
+    severity: medium
+    tags: [math, percentage, basis-points, fee]
+    references: []
+
+  - id: MATH-14
+    subcategory: Timestamp
+    question: Can timestamp manipulation affect the protocol?
+    description: |
+      Block timestamps can be slightly manipulated by miners (±15 seconds).
+      Avoid tight time-based conditions.
+    severity: medium
+    tags: [logic, timestamp, manipulation, miner]
+    references: []

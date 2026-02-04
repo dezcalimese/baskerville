@@ -1,0 +1,123 @@
+category: Access Control
+description: Checks for access control vulnerabilities
+
+items:
+  - id: AC-01
+    subcategory: Missing Access Control
+    question: Are all sensitive functions protected with access control?
+    description: |
+      Functions that modify critical state (ownership, balances, parameters)
+      must have appropriate access restrictions.
+    severity: critical
+    tags: [access-control, authorization, modifier]
+    references: []
+
+  - id: AC-02
+    subcategory: Missing Access Control
+    question: Can initialization functions be called by anyone or called multiple times?
+    description: |
+      Initializer functions (initialize, init, setUp) should be protected
+      and should only be callable once.
+    severity: critical
+    tags: [access-control, initializer, proxy]
+    references: []
+
+  - id: AC-03
+    subcategory: Ownership
+    question: Is ownership transfer a two-step process?
+    description: |
+      Single-step ownership transfer (transferOwnership) can permanently lock
+      the contract if transferred to wrong address. Use two-step (propose + accept).
+    severity: medium
+    tags: [access-control, ownership, two-step]
+    references: []
+
+  - id: AC-04
+    subcategory: Ownership
+    question: Can the owner renounce ownership and what are the consequences?
+    description: |
+      If owner can renounce ownership, ensure the contract remains functional
+      and no critical operations become permanently locked.
+    severity: medium
+    tags: [access-control, ownership, renounce]
+    references: []
+
+  - id: AC-05
+    subcategory: Role Management
+    question: Is role management (granting/revoking) properly protected?
+    description: |
+      Only authorized addresses should be able to grant or revoke roles.
+      Check for proper hierarchy and separation of concerns.
+    severity: high
+    tags: [access-control, roles, RBAC]
+    references: []
+
+  - id: AC-06
+    subcategory: Role Management
+    question: Can critical roles be held by the same address (no separation)?
+    description: |
+      Important roles (admin, minter, pauser) should ideally be held by
+      different addresses to prevent single point of failure.
+    severity: medium
+    tags: [access-control, roles, separation]
+    references: []
+
+  - id: AC-07
+    subcategory: Signature Validation
+    question: Is signature validation implemented correctly?
+    description: |
+      Check for: proper nonce management, deadline expiry, domain separator,
+      signature replay across chains, and correct ecrecover usage.
+    severity: high
+    tags: [access-control, signature, EIP-712]
+    references: []
+
+  - id: AC-08
+    subcategory: Signature Validation
+    question: Can signatures be replayed (missing nonce or same nonce reuse)?
+    description: |
+      Each signature should be usable only once. Implement incrementing nonces
+      or store used signature hashes.
+    severity: high
+    tags: [access-control, signature, replay, nonce]
+    references: []
+
+  - id: AC-09
+    subcategory: Merkle Proofs
+    question: Is Merkle proof validation secure against second preimage attacks?
+    description: |
+      Merkle trees should hash leaves differently than internal nodes.
+      Use keccak256(abi.encodePacked(address, amount)) for leaves.
+    severity: medium
+    tags: [access-control, merkle, whitelist]
+    references: []
+
+  - id: AC-10
+    subcategory: Timelock
+    question: Do critical operations have appropriate timelocks?
+    description: |
+      Sensitive operations (parameter changes, upgrades) should have timelocks
+      to give users time to react.
+    severity: medium
+    tags: [access-control, timelock, delay]
+    references: []
+
+  - id: AC-11
+    subcategory: Pausability
+    question: Can the protocol be paused in emergencies?
+    description: |
+      Critical protocols should have pause functionality for emergencies.
+      But ensure pause can't be used maliciously by compromised admin.
+    severity: medium
+    tags: [access-control, pause, emergency]
+    references: []
+
+  - id: AC-12
+    subcategory: External Calls
+    question: Are there access controls on who can be the target of external calls?
+    description: |
+      If a function makes external calls to user-supplied addresses,
+      validate the target to prevent calls to arbitrary contracts.
+    severity: high
+    tags: [access-control, external-call, validation]
+    references: []
