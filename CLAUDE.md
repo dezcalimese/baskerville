@@ -4,7 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Hound is an AI-powered autonomous security analysis system that builds dynamic knowledge graphs and uses strategic multi-agent collaboration to identify vulnerabilities. It uses a senior/junior model pattern: lightweight "scout" models handle exploration while heavyweight "strategist" models provide deep reasoning.
+**Baskerville** is an extended security analysis platform built on top of **Hound**, an AI-powered autonomous security analysis system. The platform uses dynamic knowledge graphs and strategic multi-agent collaboration to identify vulnerabilities in smart contracts.
+
+### Architecture: Two CLIs
+
+| CLI | Purpose | Commands |
+|-----|---------|----------|
+| `./hound.py` | Core analysis engine | `project`, `graph`, `agent`, `poc`, `finalize`, `report`, `static` |
+| `./baskerville.py` | Full platform with extensions | All of hound + `solodit`, `kb`, `bounty` |
+
+**Baskerville extensions:**
+- **Solodit** - Cyfrin's vulnerability database (49k+ findings)
+- **Knowledge Base** - Checklists, PoC templates, auditor tips
+- **Bounty Workflow** - Contest scraping, platform formatters, submission prep
 
 ## Commands
 
@@ -31,6 +43,8 @@ mypy --strict .                  # Type check (Python 3.10)
 ```
 
 ### CLI Usage
+
+**Hound Core (analysis engine):**
 ```bash
 ./hound.py project create <name> /path/to/code    # Create project
 ./hound.py graph build <name> --auto --files "src/A.sol,src/B.sol"
@@ -38,6 +52,27 @@ mypy --strict .                  # Type check (Python 3.10)
 ./hound.py agent audit <name> --mode intuition    # Deep, targeted search
 ./hound.py finalize <name>                        # Quality review
 ./hound.py report <name>                          # Generate report
+```
+
+**Baskerville Extensions:**
+```bash
+# Bounty workflow
+./baskerville.py bounty discover --save           # Find active contests
+./baskerville.py bounty list --active             # List tracked contests
+./baskerville.py bounty link <contest> <project>  # Link to Hound project
+./baskerville.py bounty import <contest>          # Import findings
+./baskerville.py bounty review <contest>          # Human review workflow
+./baskerville.py bounty export <contest>          # Export for submission
+
+# Knowledge base
+./baskerville.py kb search "reentrancy"           # Search checklists/tips
+./baskerville.py kb checklist --category oracle   # View checklist items
+./baskerville.py kb template reentrancy           # Get PoC template
+
+# Solodit integration
+./baskerville.py solodit search "flash loan"      # Search vuln database
+./baskerville.py solodit intel lending            # Pre-audit intelligence
+./baskerville.py solodit enrich <project>         # Enrich hypotheses
 ```
 
 ## Architecture
@@ -73,23 +108,41 @@ mypy --strict .                  # Type check (Python 3.10)
 
 ### Directory Structure
 ```
-hound/
-├── llm/           # Multi-provider LLM integration
-├── analysis/      # Core agent, strategist, graph builder
-├── commands/      # CLI command handlers (agent, graph, project, etc.)
-├── ingest/        # Repository ingestion and bundling
-├── utils/         # Config loader, JSON utilities
-├── visualization/ # Graph visualization
-├── chatbot/       # Web UI for steering audits
-└── tests/         # Test suite
+baskerville/
+├── hound.py           # Core CLI (analysis engine)
+├── baskerville.py     # Extended CLI (wraps hound + extensions)
+├── llm/               # Multi-provider LLM integration
+├── analysis/          # Core agent, strategist, graph builder
+├── commands/          # CLI command handlers
+│   ├── project.py     # Hound core
+│   ├── graph.py       # Hound core
+│   ├── agent.py       # Hound core
+│   ├── solodit.py     # Baskerville extension
+│   ├── knowledge.py   # Baskerville extension
+│   └── bounty.py      # Baskerville extension
+├── extensions/        # Baskerville extension modules
+│   ├── solodit/       # Solodit API client
+│   ├── knowledge/     # Checklists, templates, tips
+│   └── bounty/        # Contest workflow
+├── ingest/            # Repository ingestion and bundling
+├── utils/             # Config loader, JSON utilities
+├── visualization/     # Graph visualization
+├── chatbot/           # Web UI for steering audits
+└── tests/             # Test suite
 ```
 
 ### Data Persistence
-Projects stored in `~/.hound/projects/<name>/`:
+
+**Hound data** in `~/.hound/projects/<name>/`:
 - `graphs/` - Knowledge graphs and card store
 - `hypotheses.json` - Vulnerability findings
 - `sessions/` - Per-session coverage, investigations, token usage
 - `pocs/` - Proof-of-concept exploits
+
+**Baskerville data** in `~/.hound/bounty/`:
+- `contests/` - Contest state and metadata
+- `findings/` - Findings per contest
+- `exports/` - Formatted submissions
 
 ## Configuration
 
@@ -98,6 +151,7 @@ Config priority: explicit path > `HOUND_CONFIG` env > `config.yaml` in cwd > `co
 Required API keys (environment variables):
 - `OPENAI_API_KEY` (required)
 - `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `XAI_API_KEY` (optional)
+- `SOLODIT_API_KEY` (optional, for Solodit integration)
 - For Vertex AI: `GOOGLE_USE_VERTEX_AI=1`, `VERTEX_PROJECT_ID`, `VERTEX_LOCATION`
 
 ## Testing Notes
@@ -109,7 +163,7 @@ Required API keys (environment variables):
 
 ## Import Handling
 
-The codebase uses special path injection in `hound.py` and `tests/conftest.py` to avoid conflicts with a global `llm` package. The local `llm/` module is force-mapped to `hound.llm` in sys.modules.
+The codebase uses special path injection in `hound.py`, `baskerville.py`, and `tests/conftest.py` to avoid conflicts with a global `llm` package. The local `llm/` module is force-mapped to `hound.llm` in sys.modules.
 
 ## Development Practices
 
@@ -128,3 +182,29 @@ When a bug is reported, don't jump straight to fixing it. Instead:
 2. **Then**, fix the bug and prove it with the passing test
 
 This ensures we understand the bug, prevents regressions, and builds up the test suite.
+
+## Extension Development
+
+### Bounty Workflow State Machines
+
+**Contest states:** `DISCOVERED` → `SCOPED` → `AUDITING` → `REVIEW` → `EXPORTED` → `SUBMITTED` → `ARCHIVED`
+
+**Finding states:** `DETECTED` → `TRIAGED` → `ACCEPTED`/`REJECTED` → `REFINED` → `EXPORTED`
+
+Human review gate: Findings are never auto-submitted. The `bounty export` command formats for platforms, but users must manually submit.
+
+### Adding New Platform Formatters
+
+Create a new formatter in `extensions/bounty/formatters/`:
+```python
+from .base import BaseFormatter, FormattedFinding
+
+class NewPlatformFormatter(BaseFormatter):
+    platform = "newplatform"
+
+    def format_finding(self, finding: Finding) -> FormattedFinding:
+        # Platform-specific markdown format
+        ...
+```
+
+Register in `extensions/bounty/formatters/__init__.py`.

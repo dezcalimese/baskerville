@@ -47,20 +47,54 @@ Baskerville inherits all of Hound's core capabilities:
 
 ## What Baskerville Adds
 
+### Two CLIs: Core vs Extended
+
+Baskerville provides two entry points:
+
+| CLI | Purpose |
+|-----|---------|
+| `./hound.py` | Core analysis engine (project, graph, agent, poc, report) |
+| `./baskerville.py` | Full platform with all extensions |
+
+Use `./baskerville.py` for the complete workflow. Use `./hound.py` if you only need core analysis.
+
 ### Solodit Integration
 Integration with Cyfrin's [Solodit](https://solodit.xyz) database of 49,000+ smart contract audit findings. Query past vulnerabilities reactively (when patterns are detected) or proactively (before auditing a protocol category).
+
+```bash
+./baskerville.py solodit search "flash loan attack"   # Search findings
+./baskerville.py solodit intel lending                # Pre-audit intelligence
+./baskerville.py solodit enrich myproject             # Enrich hypotheses
+```
 
 ### Static Analysis Pipeline
 Orchestrated pipeline running Slither, Aderyn, and custom AST patterns *before* the LLM touches code. Results feed into Hound's hypothesis system as initial observations.
 
-### Solidity-Specific Graph Templates
-ERC pattern templates (ERC20, ERC721, ERC4626, ERC777), DeFi protocol templates (lending, AMMs, vaults, perpetuals, governance), and proxy analysis (UUPS, Transparent, Beacon, storage layout).
-
 ### Audit Knowledge Base
-Structured checklists (380+ items from Solodit), Foundry PoC templates by vulnerability class, auditor heuristics, and vector embeddings for semantic search over past audits.
+Structured checklists (380+ items from Solodit + custom), Foundry PoC templates by vulnerability class, and auditor heuristics.
+
+```bash
+./baskerville.py kb search "reentrancy"               # Search all knowledge
+./baskerville.py kb checklist --category oracle       # View checklist items
+./baskerville.py kb template reentrancy               # Get PoC template
+./baskerville.py kb tips --priority high              # View auditor tips
+```
 
 ### Bounty/Contest Workflow
 Automated workflow for Code4rena, Sherlock, CodeHawks, and Immunefi contests — contest scraping, platform-specific formatters, and submission preparation with a human review gate (never auto-submits).
+
+```bash
+./baskerville.py bounty discover --save               # Find active contests
+./baskerville.py bounty list --active                 # List tracked contests
+./baskerville.py bounty link <contest> <project>      # Link to Hound project
+./baskerville.py bounty import <contest>              # Import findings
+./baskerville.py bounty review <contest>              # Human review workflow
+./baskerville.py bounty export <contest>              # Export for submission
+```
+
+**State Machine:** Contests flow through `DISCOVERED` → `SCOPED` → `AUDITING` → `REVIEW` → `EXPORTED` → `SUBMITTED`
+
+**Human Review Gate:** Findings are never auto-submitted. Export formats for the platform, but you submit manually.
 
 ## Installation
 
@@ -73,8 +107,12 @@ pip install -r requirements.txt
 Set up your API keys:
 
 ```bash
+# Required for LLM analysis
 export OPENAI_API_KEY=your_key_here
 export ANTHROPIC_API_KEY=your_key_here  # recommended for Claude models
+
+# Optional: Solodit API for vulnerability database
+export SOLODIT_API_KEY=your_key_here    # Get from Cyfrin
 ```
 
 Using Gemini via Vertex AI (optional):
@@ -89,7 +127,7 @@ export VERTEX_LOCATION=us-central1
 Copy and edit the config:
 
 ```bash
-cp hound/config.yaml.example hound/config.yaml
+cp config.yaml.example config.yaml
 ```
 
 **Note:** Audit quality scales with time and model capability. Use longer runs and advanced models for more complete results.
