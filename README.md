@@ -3,11 +3,15 @@
 </p>
 <h1 align="center">Baskerville</h1>
 
-<p align="center"><strong>Solidity-focused smart contract security auditing agent</strong></p>
+<p align="center"><strong>Multi-chain smart contract security auditing agent</strong></p>
 
 <p align="center">
   <a href="LICENSE.txt"><img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python 3.10+"/></a>
+  <img src="https://img.shields.io/badge/EVM-Solidity-363636" alt="EVM"/>
+  <img src="https://img.shields.io/badge/Solana-Rust-9945FF" alt="Solana"/>
+  <img src="https://img.shields.io/badge/Sui-Move-6FBCF0" alt="Sui"/>
+  <img src="https://img.shields.io/badge/Aptos-Move-2ECC71" alt="Aptos"/>
   <a href="https://anthropic.com"><img src="https://img.shields.io/badge/Anthropic-Compatible-6B46C1" alt="Anthropic"/></a>
   <a href="https://openai.com"><img src="https://img.shields.io/badge/OpenAI-Compatible-74aa9c" alt="OpenAI"/></a>
   <a href="https://ai.google.dev/"><img src="https://img.shields.io/badge/Gemini-Compatible-4285F4" alt="Gemini"/></a>
@@ -26,7 +30,23 @@
 
 ## Overview
 
-Baskerville is a smart contract security auditing agent built on top of [**Hound**](https://github.com/scabench-org/hound), Bernhard Mueller's open-source AI auditor. While Hound provides a powerful language-agnostic foundation for autonomous code auditing, Baskerville extends it with Solidity-specific tooling, vulnerability databases, and an automated bug bounty workflow.
+Baskerville is a multi-chain smart contract security auditing agent built on top of [**Hound**](https://github.com/scabench-org/hound), Bernhard Mueller's open-source AI auditor. While Hound provides a powerful language-agnostic foundation for autonomous code auditing, Baskerville extends it with chain-specific tooling, vulnerability databases, and an automated bug bounty workflow.
+
+### Supported Chains
+
+| Chain | Language | Static Tools | Project Marker |
+|-------|----------|-------------|----------------|
+| **EVM** | Solidity, Vyper | Slither, Aderyn | `foundry.toml`, `hardhat.config.js` |
+| **Solana** | Rust/Anchor | Soteria, cargo-audit | `Anchor.toml` |
+| **Sui** | Move | Move Prover, Sui Move Lint | `Move.toml` (Sui framework) |
+| **Aptos** | Move | Move Prover, Aptos Move Lint | `Move.toml` (Aptos framework) |
+
+Chain is auto-detected from project files, or set manually with `--chain`:
+
+```bash
+./baskerville.py project create myaudit /path/to/code              # auto-detect
+./baskerville.py project create myaudit /path/to/code --chain solana  # explicit
+```
 
 The name references Baskerville from Hellsing — Alucard's familiar.
 
@@ -68,10 +88,16 @@ Integration with Cyfrin's [Solodit](https://solodit.xyz) database of 49,000+ sma
 ```
 
 ### Static Analysis Pipeline
-Orchestrated pipeline running Slither, Aderyn, and custom AST patterns *before* the LLM touches code. Results feed into Hound's hypothesis system as initial observations.
+Chain-aware orchestrated pipeline running static analyzers *before* the LLM touches code. Results feed into Hound's hypothesis system as initial observations.
+
+- **EVM:** Slither + Aderyn
+- **Solana:** Soteria + cargo-audit (dependency CVEs)
+- **Sui/Aptos:** Move Prover (formal verification) + Sui Move Lint
+
+The pipeline auto-selects tools based on the project's chain.
 
 ### Audit Knowledge Base
-Structured checklists (380+ items from Solodit + custom), Foundry PoC templates by vulnerability class, and auditor heuristics.
+Structured checklists (380+ items from Solodit + custom per-chain checklists), PoC templates by vulnerability class, and auditor heuristics — all chain-filtered.
 
 ```bash
 ./baskerville.py kb search "reentrancy"               # Search all knowledge
@@ -79,6 +105,10 @@ Structured checklists (380+ items from Solodit + custom), Foundry PoC templates 
 ./baskerville.py kb template reentrancy               # Get PoC template
 ./baskerville.py kb tips --priority high              # View auditor tips
 ```
+
+Includes chain-specific content:
+- **Solana:** Missing signer checks, CPI privilege escalation, PDA seed collisions, account closing bugs, and more
+- **Sui/Move:** Shared object race conditions, capability leakage, one-time witness misuse, type confusion via generics, and more
 
 ### Bounty/Contest Workflow
 Automated workflow for Code4rena, Sherlock, CodeHawks, and Immunefi contests — contest scraping, platform-specific formatters, and submission preparation with a human review gate (never auto-submits).
@@ -145,8 +175,11 @@ The sections below document Hound's core functionality, which Baskerville builds
 Projects organize your audits and store all analysis data:
 
 ```bash
-# Create a project from local code
+# Create a project (auto-detects chain from project files)
 ./hound.py project create myaudit /path/to/code
+
+# Create with explicit chain
+./hound.py project create myaudit /path/to/code --chain solana
 
 # List all projects
 ./hound.py project ls
