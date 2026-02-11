@@ -1,0 +1,21 @@
+chain: sui
+category: "Sui Capability Patterns"
+items:
+  - id: "SUI-CAP-01"
+    question: "Are capabilities stored securely and not leaked to shared objects?"
+    description: "Capabilities stored in shared objects can be accessed by anyone. They should be owned objects."
+    remediation: "Transfer capabilities to specific addresses, never share_object them."
+    severity: "high"
+    tags: ["capability", "access-control", "sui"]
+  - id: "SUI-CAP-02"
+    question: "Is the one-time witness properly consumed in init?"
+    description: "OTW must be consumed (not stored or copied) to ensure type authority is only granted once."
+    remediation: "Accept OTW by value in init, ensure the struct has drop ability and no fields."
+    severity: "high"
+    tags: ["witness", "one-time-witness", "sui"]
+  - id: "SUI-CAP-03"
+    question: "Are generic type parameters properly constrained?"
+    description: "Unconstrained generics allow any type to be used, enabling type confusion attacks."
+    remediation: "Add ability constraints (store, copy, drop, key) to generic parameters where appropriate."
+    severity: "high"
+    tags: ["generics", "type-confusion", "sui"]

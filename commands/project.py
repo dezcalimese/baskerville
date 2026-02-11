@@ -80,42 +80,62 @@ class ProjectManager:
             except Exception:
                 pass
     
-    def create_project(self, name: str, source_path: str, 
+    def create_project(self, name: str, source_path: str,
                       description: str | None = None,
-                      auto_name: bool = False) -> dict:
-        """Create a new project."""
+                      auto_name: bool = False,
+                      chain: str = "auto") -> dict:
+        """Create a new project.
+
+        Args:
+            name: Project name
+            source_path: Path to source code
+            description: Optional description
+            auto_name: Auto-generate name from source path
+            chain: Chain ID ("evm", "solana", "sui", "aptos", "auto")
+        """
         source_path = Path(source_path).resolve()
-        
+
         if not source_path.exists():
             raise ValueError(f"Source path does not exist: {source_path}")
-        
+
         # Auto-generate name if requested
         if auto_name:
             name = f"{source_path.name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        
+
+        # Detect or validate chain
+        from analysis.chain_profiles import detect_chain_from_files, get_profile
+        if chain == "auto":
+            chain_id = detect_chain_from_files(source_path)
+        else:
+            chain_id = chain
+            get_profile(chain_id)  # Validate chain ID
+
         # Check if project already exists
         registry = self._load_registry()
         if name in registry["projects"]:
             raise ValueError(f"Project '{name}' already exists")
-        
+
         # Create project directory
         project_dir = self.projects_dir / name
         project_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Create project subdirectories
         (project_dir / "graphs").mkdir(exist_ok=True)
         (project_dir / "manifest").mkdir(exist_ok=True)
         # Legacy 'agent_runs' directory no longer used
         (project_dir / "reports").mkdir(exist_ok=True)
-        
+
         # Create project config
+        profile = get_profile(chain_id)
         project_config = {
             "name": name,
             "source_path": str(source_path),
             "description": description or f"Analysis of {source_path.name}",
             "created_at": datetime.now().isoformat(),
             "last_accessed": datetime.now().isoformat(),
-            "status": "active"
+            "status": "active",
+            "chain_id": chain_id,
+            "chain_display_name": profile.display_name,
         }
         
         # Save project config
@@ -335,12 +355,14 @@ def project():
 @click.argument('source_path')
 @click.option('--description', '-d', help="Project description")
 @click.option('--auto-name', '-a', is_flag=True, help="Auto-generate project name")
-def create(name: str, source_path: str, description: str | None, auto_name: bool):
+@click.option('--chain', '-c', type=click.Choice(['evm', 'solana', 'sui', 'aptos', 'auto'], case_sensitive=False),
+              default='auto', help="Target chain (default: auto-detect)")
+def create(name: str, source_path: str, description: str | None, auto_name: bool, chain: str):
     """Create a new project."""
     manager = ProjectManager()
-    
+
     try:
-        config = manager.create_project(name, source_path, description, auto_name)
+        config = manager.create_project(name, source_path, description, auto_name, chain)
         
         flair = random.choice([
             "🚀 Normal projects get created, but YOURS arrives with a coronation.",
@@ -349,10 +371,12 @@ def create(name: str, source_path: str, description: str | None, auto_name: bool
             "🔥 Ordinary registries record; YOUR registry kneels and shines your name.",
             "⚡ Normal starts are quiet; YOUR start makes the backlog stand at attention.",
         ])
+        chain_label = config.get('chain_display_name', config.get('chain_id', 'EVM/Solidity'))
         console.print(Panel(
             f"[bright_green]✓ Project created[/bright_green] — {flair}\n\n"
             f"[bold]Name:[/bold] {config['name']}\n"
             f"[bold]Source:[/bold] {config['source_path']}\n"
+            f"[bold]Chain:[/bold] {chain_label}\n"
             f"[bold]Description:[/bold] {config['description']}\n\n"
             f"[dim]Project directory: {manager.projects_dir / config['name']}[/dim]",
             title="[bold bright_cyan]New Project[/bold bright_cyan]",

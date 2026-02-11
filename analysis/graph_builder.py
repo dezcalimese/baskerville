@@ -261,7 +261,7 @@ class GraphBuilder:
     4. Minimal pre-processing - just code cards
     """
     
-    def __init__(self, config: dict, debug: bool = False, debug_logger=None):
+    def __init__(self, config: dict, debug: bool = False, debug_logger=None, chain_id: str = "evm"):
         # Use a local copy of config and honor user-provided model settings.
         # We now use a single model profile ('graph') for both discovery and build.
         import copy as _copy
@@ -269,6 +269,11 @@ class GraphBuilder:
         self.config = cfg
         self.debug = debug
         self.debug_logger = debug_logger
+        self.chain_id = chain_id
+
+        # Load chain profile for graph type suggestions
+        from .chain_profiles import get_profile
+        self.chain_profile = get_profile(chain_id)
 
         # Initialize LLM client for graph building (also used for discovery)
         self.llm = LLMClient(self.config, profile="graph", debug_logger=debug_logger)
@@ -512,7 +517,7 @@ Creativity guidance:
 - Propose novel, domain-specific graph types when they would reveal important structure or risk.
 - Avoid redundancy across graphs; minimize overlap and pick the most informative lenses.
 
-Ideas for strong, analysis-friendly graphs (pick those that fit this codebase):
+""" + (self.chain_profile.graph_builder_supplement if self.chain_profile.graph_builder_supplement else """Ideas for strong, analysis-friendly graphs (pick those that fit this codebase):
 - AuthorizationMap: who grants/assumes/authorizes which roles/actions (edges: creates, grants, assumes, authorizes, guarded_by).
 - PermissionChecks: coverage of access modifiers and require checks per function (edges: guarded_by, unchecked, requires_role).
 - AssetFlow: mint/burn/transfer/deposit/withdraw across contracts and accounts (edges: mints, burns, transfers, deposits, withdraws).
@@ -520,10 +525,10 @@ Ideas for strong, analysis-friendly graphs (pick those that fit this codebase):
 - UpgradeLifecycle: deployment/initialization/upgrade relationships (edges: deploys, initializes, upgrades, migrates_from).
 - ExternalDeps: external/oracle/library dependencies and trust boundaries (edges: reads_from, depends_on, trusts, verifies).
 - Reentrancy/ExternalCalls: external call graph with entrypoints and reentrant paths (edges: calls_external, reentrant_path, invokes_untrusted).
-- InvariantsMap: key invariants/assumptions and where they’re enforced (edges: enforced_by, broken_by, relies_on).
+- InvariantsMap: key invariants/assumptions and where they're enforced (edges: enforced_by, broken_by, relies_on).
 - MathAlgorithm: break down core formulas/AMM math into steps/variables (edges: computes, uses_param, normalizes, clamps).
 - EventMap: which events are emitted by which functions and with what state (edges: emitted_by, indexes, correlates_with).
-- TimeWindows/RateLimits: time-based gates and limits (edges: gates, bounded_by, cooldown).
+- TimeWindows/RateLimits: time-based gates and limits (edges: gates, bounded_by, cooldown).""") + """
 
 For each graph, you MUST provide:
 - name: A short name for the graph

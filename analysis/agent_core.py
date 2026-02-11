@@ -73,19 +73,25 @@ class AutonomousAgent:
     Security analysis agent that works autonomously.
     """
     
-    def __init__(self, 
+    def __init__(self,
                  graphs_metadata_path: Path,
                  manifest_path: Path,
                  agent_id: str,
                  config: dict | None = None,
                  debug: bool = False,
-                 session_id: str | None = None):
+                 session_id: str | None = None,
+                 chain_id: str = "evm"):
         """Initialize the autonomous agent."""
-        
+
         self.agent_id = agent_id
         self.manifest_path = manifest_path
         self.debug = debug
         self.session_id = session_id
+        self.chain_id = chain_id
+
+        # Load chain profile for prompt adaptation
+        from .chain_profiles import get_profile
+        self.chain_profile = get_profile(chain_id)
         # Default hypothesis visibility; can be overridden by runner
         self.default_hypothesis_visibility = 'global'
         
@@ -1042,11 +1048,12 @@ class AutonomousAgent:
         Get agent's structured decision based on context.
         Uses provider-appropriate method for reliable parsing.
         """
-        system_prompt = """You are an autonomous security investigation agent analyzing smart contracts.
+        profile = self.chain_profile
+        system_prompt = f"""You are an autonomous security investigation agent analyzing {profile.module_term_plural}.
 
 YOUR CORE RESPONSIBILITY: You are the EXPLORER and CONTEXT BUILDER. Your primary job is to:
 - Navigate and explore the graph structure to understand the system
-- Load relevant code that implements the features being investigated  
+- Load relevant code that implements the features being investigated
 - Build comprehensive context by examining multiple related components
 - Prepare complete information for the deep think model to analyze
 
@@ -1091,9 +1098,9 @@ Never mix these - security concerns always go in hypotheses, not in graph update
 
 WHEN ADDING OBSERVATIONS/ASSUMPTIONS:
 Keep EXTREMELY SHORT - just essential facts, not full sentences:
-- Good: "only owner", "checks balance", "emits Transfer", "immutable", "reentrancy guard"
-- Bad: "This function can only be called by the owner of the contract"
-- Bad: "The function checks that the balance is greater than zero before proceeding"
+- Good: """ + ', '.join(f'"{ex}"' for ex in profile.annotation_examples[:5]) + """
+- Bad: "This """ + profile.function_term + """ can only be called by the owner of the """ + profile.module_term + """"
+- Bad: "The """ + profile.function_term + """ checks that the balance is greater than zero before proceeding"
 
 AVAILABLE ACTIONS - USE EXACT PARAMETERS AS SHOWN:
 
@@ -1198,8 +1205,8 @@ COMPLETION CRITERIA (WHEN TO CALL complete):
 2. Further exploration is unlikely to reveal new important information, OR
 3. No promising exploration paths remain.
 
-IMPORTANT: 
-- Do NOT form hypotheses directly - that's deep_think's job
+IMPORTANT:
+- Do NOT form hypotheses directly - that is deep_think's job
 - NEVER call deep_think without loading substantial code context first (5-10+ nodes minimum)
 - Deep_think is EXPENSIVE and analyzes YOUR discoveries - incomplete prep = wasted analysis
 - Your role: EXPLORE thoroughly, LOAD relevant code, BUILD complete context
@@ -1216,7 +1223,7 @@ IMPORTANT JSON FORMATTING RULES:
 - Do NOT include empty arrays [] or null - omit the field
 - Each action has SPECIFIC required parameters - only include those
 
-Return a JSON object with: action, reasoning, parameters"""
+Return a JSON object with: action, reasoning, parameters""" + (profile.agent_prompt_supplement if profile.agent_prompt_supplement else "")
         
         user_prompt = f"""Current Context:
 
@@ -1842,11 +1849,12 @@ DO NOT include any text before or after the JSON object."""
             from .strategist import Strategist
             # Pass debug and session_id to strategist for deep_think prompt saving
             strategist = Strategist(
-                config=self.config or {}, 
-                debug=self.debug, 
+                config=self.config or {},
+                debug=self.debug,
                 session_id=self.session_id,
                 debug_logger=getattr(self, 'debug_logger', None),
-                mission=getattr(self, 'mission', None)
+                mission=getattr(self, 'mission', None),
+                chain_id=self.chain_id,
             )
             # Pass phase if available (from parent runner)
             phase = getattr(self, 'current_phase', None)

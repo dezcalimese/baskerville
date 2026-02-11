@@ -117,6 +117,7 @@ class Finding:
 
     # Metadata
     metadata: dict[str, Any] = field(default_factory=dict)
+    chain: str = "evm"  # Chain: evm, solana, sui, aptos, etc.
 
     def transition_to(self, new_state: FindingState) -> None:
         """Transition to a new state.
@@ -207,6 +208,11 @@ class Finding:
             Severity.GAS: 5,
         }.get(self.severity, 99)
 
+    @property
+    def component_name(self) -> str:
+        """Get component name (alias for contract_name for cross-chain use)."""
+        return self.contract_name
+
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
         return {
@@ -243,6 +249,7 @@ class Finding:
             "platform_id": self.platform_id,
             "submission_url": self.submission_url,
             "metadata": self.metadata,
+            "chain": self.chain,
         }
 
     @classmethod
@@ -282,6 +289,7 @@ class Finding:
             platform_id=data.get("platform_id", ""),
             submission_url=data.get("submission_url", ""),
             metadata=data.get("metadata", {}),
+            chain=data.get("chain", "evm"),
         )
 
     @classmethod

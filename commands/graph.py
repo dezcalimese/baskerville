@@ -252,7 +252,16 @@ def build(
             if focus_list:
                 log_line('build', f"Focus areas: {', '.join(focus_list)}")
 
-            builder = GraphBuilder(config, debug=debug, debug_logger=debug_logger)
+            # Load chain_id from project config
+            _chain_id = "evm"
+            try:
+                with open(project_dir / 'project.json') as _pf:
+                    _proj = json.load(_pf)
+                    _chain_id = _proj.get('chain_id', 'evm')
+            except Exception:
+                pass
+
+            builder = GraphBuilder(config, debug=debug, debug_logger=debug_logger, chain_id=_chain_id)
 
             # Narrative model names: reflect effective models used by builder
             try:

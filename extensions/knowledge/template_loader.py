@@ -18,6 +18,7 @@ class PoCTemplate:
     template: str
     placeholders: list[str]
     tags: list[str]
+    chain: str = "evm"
 
 
 class TemplateLoader:
@@ -57,10 +58,40 @@ class TemplateLoader:
                 except Exception as e:
                     print(f"[!] Failed to load template {sol_file}: {e}")
 
+            # Load Solana templates (Rust files)
+            solana_dir = self.templates_dir / "solana"
+            if solana_dir.exists():
+                for rs_file in solana_dir.glob("*.rs"):
+                    try:
+                        content = rs_file.read_text()
+                        template = self._parse_template_file(rs_file.stem, content, chain="solana")
+                        if template:
+                            self._templates[template.id] = template
+                    except Exception as e:
+                        print(f"[!] Failed to load Solana template {rs_file}: {e}")
+
+            # Load Sui/Move templates
+            sui_dir = self.templates_dir / "sui"
+            if sui_dir.exists():
+                for move_file in sui_dir.glob("*.move"):
+                    try:
+                        content = move_file.read_text()
+                        template = self._parse_template_file(move_file.stem, content, chain="sui")
+                        if template:
+                            self._templates[template.id] = template
+                    except Exception as e:
+                        print(f"[!] Failed to load Sui template {move_file}: {e}")
+
         self._loaded = True
 
-    def _parse_template_file(self, name: str, content: str) -> PoCTemplate | None:
-        """Parse template from file content."""
+    def _parse_template_file(self, name: str, content: str, chain: str = "evm") -> PoCTemplate | None:
+        """Parse template from file content.
+
+        Args:
+            name: Template name (typically the file stem)
+            content: Template file content
+            chain: Chain identifier (e.g., "evm", "solana", "sui")
+        """
         # Look for metadata in leading comment block
         vuln_type = name.replace("_", "-")
         description = f"PoC template for {name}"
@@ -72,7 +103,8 @@ class TemplateLoader:
             description=description,
             template=content,
             placeholders=self._extract_placeholders(content),
-            tags=[vuln_type],
+            tags=[vuln_type, chain],
+            chain=chain,
         )
 
     def _extract_placeholders(self, content: str) -> list[str]:
@@ -143,6 +175,19 @@ class TemplateLoader:
         """Get a template by ID."""
         self._load()
         return self._templates.get(template_id)
+
+    def get_by_chain(self, chain_id: str) -> list[PoCTemplate]:
+        """Get templates filtered by chain.
+
+        Args:
+            chain_id: Chain identifier (e.g., "evm", "solana", "sui")
+
+        Returns:
+            List of templates matching the given chain
+        """
+        self._load()
+        chain_lower = chain_id.lower()
+        return [t for t in self._templates.values() if t.chain.lower() == chain_lower]
 
     def get_by_vulnerability(self, vuln_type: str) -> list[PoCTemplate]:
         """Get templates for a vulnerability type."""

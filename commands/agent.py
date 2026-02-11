@@ -166,12 +166,23 @@ def run_investigation(project_path: str, prompt: str, iterations: int | None = N
         "[white]This is not mere inquiry — it’s jurisprudence of insight under YOUR seal.[/white]",
         "[white]Normal analysts explore; YOU redraw the map and make the unknown pay rent.[/white]",
     ]))
+    # Load chain_id from project config
+    _chain_id = "evm"
+    try:
+        _proj_json = project_dir / 'project.json'
+        if _proj_json.exists():
+            with open(_proj_json) as _pf:
+                _chain_id = json.load(_pf).get('chain_id', 'evm')
+    except Exception:
+        pass
+
     agent = Scout(
         graphs_metadata_path=knowledge_graphs_path,
         manifest_path=manifest_dir,
         agent_id=f"investigate_{int(time.time())}",
         config=config,  # Pass the loaded config dict, not the path
-        debug=debug
+        debug=debug,
+        chain_id=_chain_id,
     )
     
     # Run investigation with live display
@@ -762,6 +773,16 @@ class AgentRunner:
         if not _validate_required_models(self.config, console):
             return False
 
+        # Load chain_id from project config
+        _chain_id = "evm"
+        try:
+            _proj_json = project_dir / 'project.json'
+            if _proj_json.exists():
+                with open(_proj_json) as _pf:
+                    _chain_id = json.load(_pf).get('chain_id', 'evm')
+        except Exception:
+            pass
+
         # Create agent with knowledge graphs metadata
         self.agent = Scout(
             graphs_metadata_path=knowledge_graphs_path,
@@ -769,7 +790,8 @@ class AgentRunner:
             agent_id=f"agent_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
             config=config,  # Pass the loaded config dict
             debug=self.debug,
-            session_id=self.session_id
+            session_id=self.session_id,
+            chain_id=_chain_id,
         )
         # Ensure overarching mission is visible to the agent/strategist
         try:

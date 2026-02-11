@@ -1,0 +1,21 @@
+chain: solana
+category: "Solana CPI Security"
+items:
+  - id: "SOL-CPI-01"
+    question: "Are CPI target program IDs validated against known constants?"
+    description: "If the CPI target program is passed as an account, an attacker can substitute a malicious program."
+    remediation: "Hardcode expected program IDs or validate them against known constants before making CPI calls."
+    severity: "high"
+    tags: ["cpi", "program-id", "solana"]
+  - id: "SOL-CPI-02"
+    question: "Are signer seeds properly constructed for invoke_signed CPI calls?"
+    description: "Incorrect signer seeds in CPI can lead to privilege escalation or authorization bypass."
+    remediation: "Use the correct PDA seeds and bump for the account being authorized in invoke_signed."
+    severity: "high"
+    tags: ["cpi", "signer-seeds", "solana"]
+  - id: "SOL-CPI-03"
+    question: "Are all accounts passed to CPI validated before the invocation?"
+    description: "Accounts passed through CPI inherit the caller's privileges. Unvalidated accounts can be exploited."
+    remediation: "Validate all account constraints before making CPI calls, especially signer and program accounts."
+    severity: "high"
+    tags: ["cpi", "account-validation", "solana"]

@@ -1,0 +1,27 @@
+chain: sui
+category: "Sui Object Safety"
+items:
+  - id: "SUI-OBJ-01"
+    question: "Are shared objects protected against race conditions?"
+    description: "Multiple transactions can access shared objects concurrently. Critical operations may produce unexpected results."
+    remediation: "Use versioning, locks, or ensure operations are commutative. Consider owned objects for sensitive state."
+    severity: "high"
+    tags: ["shared-object", "race-condition", "sui"]
+  - id: "SUI-OBJ-02"
+    question: "Can objects be unexpectedly transferred to break invariants?"
+    description: "public_transfer on shared objects can convert them to owned, breaking other users' access."
+    remediation: "Use transfer::share_object for objects that must stay shared. Avoid public_transfer on shared objects."
+    severity: "high"
+    tags: ["transfer", "ownership", "sui"]
+  - id: "SUI-OBJ-03"
+    question: "Are frozen objects truly immutable and not bypassable via wrapping?"
+    description: "Frozen objects are immutable, but wrapping them in another object can enable indirect mutation."
+    remediation: "Ensure frozen objects aren't wrapped in mutable containers. Use store ability carefully."
+    severity: "medium"
+    tags: ["frozen", "immutable", "wrapping", "sui"]
+  - id: "SUI-OBJ-04"
+    question: "Are dynamic fields properly authorized before add/remove operations?"
+    description: "Dynamic fields allow arbitrary data attachment. Unauthorized manipulation can corrupt object state."
+    remediation: "Gate dynamic_field::add and dynamic_field::remove behind capability checks or ownership validation."
+    severity: "high"
+    tags: ["dynamic-field", "authorization", "sui"]

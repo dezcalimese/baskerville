@@ -59,20 +59,24 @@ def _choose_profile(cfg: dict[str, Any]) -> str:
 class Strategist:
     """Senior planning agent."""
 
-    def __init__(self, config: dict[str, Any] | None = None, debug: bool = False, session_id: str | None = None, debug_logger=None, mission: str | None = None):
+    def __init__(self, config: dict[str, Any] | None = None, debug: bool = False, session_id: str | None = None, debug_logger=None, mission: str | None = None, chain_id: str = "evm"):
         self.config = config or {}
         profile = _choose_profile(self.config)
-        
+
         # Initialize or reuse debug logger
         self.debug_logger = debug_logger
         if debug and self.debug_logger is None:
             from analysis.debug_logger import DebugLogger
             self.debug_logger = DebugLogger(session_id or "strategist")
-        
+
         self.profile = profile
         self.llm = UnifiedLLMClient(cfg=self.config, profile=profile, debug_logger=self.debug_logger)
         # Overarching mission to keep in strategist context when available
         self.mission = mission
+        # Chain profile for chain-specific prompts
+        self.chain_id = chain_id
+        from .chain_profiles import get_profile
+        self.chain_profile = get_profile(chain_id)
         # Two-pass review toggle (off by default; enabled via config)
         try:
             self.two_pass_review = bool(self.config.get('strategist_two_pass_review', False))
@@ -152,7 +156,7 @@ class Strategist:
                 "- Avoid repeating completed investigations\n\n"
                 "FOR EACH ITEM include WHY NOW and EXIT CRITERIA in 'reasoning'.\n"
                 "Category should be 'aspect', expected_impact realistic.\n"
-            )
+            ) + (self.chain_profile.strategist_prompt_supplement if self.chain_profile.strategist_prompt_supplement else "")
         elif phase_hint == 'Saliency':
             system = (
                 "You are a senior security auditor in INTUITION MODE (Phase 2).\n"
@@ -176,7 +180,7 @@ class Strategist:
                 "4. STATE CORRUPTION: What could break critical invariants?\n\n"
                 "FOR EACH ITEM include WHY NOW and EXIT CRITERIA in 'reasoning'.\n"
                 "Category should be 'suspicion' for bugs, 'aspect' for deep dives.\n"
-            )
+            ) + (self.chain_profile.strategist_prompt_supplement if self.chain_profile.strategist_prompt_supplement else "")
         else:
             # Auto mode - generic system prompt
             system = (
@@ -371,12 +375,13 @@ class Strategist:
         # Use phase parameter if provided, otherwise default to Phase 2 (Saliency)
         is_phase1 = (phase == 'Coverage')
         if is_phase1:
+            vuln_cats = ", ".join(self.chain_profile.vulnerability_categories[:10])
             system = (
-                "You are a security auditor analyzing code components for vulnerabilities.\n"
+                f"You are a security auditor analyzing {self.chain_profile.module_term_plural} for vulnerabilities.\n"
                 "Your task: Identify security vulnerabilities in the provided code.\n\n"
                 "INSTRUCTIONS:\n"
                 "- Look for ALL types of vulnerabilities in this component\n"
-                "- Consider issues like: missing validation, access control, overflow, reentrancy, logic errors, etc.\n"
+                f"- Key vulnerability categories for this chain: {vuln_cats}\n"
                 "- Provide thorough analysis of the component\n"
                 "- Focus on real, exploitable vulnerabilities\n"
                 "- If there are no vulnerabilities found, say 'NO_HYPOTHESES: true'\n\n"

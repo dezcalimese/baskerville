@@ -1,0 +1,86 @@
+chain: solana
+tips:
+  - id: "TIP-SOL-SIGN-01"
+    title: "Check for missing signer validation"
+    category: "Account Security"
+    tip: "Every instruction that mutates state must verify the signer. In Anchor, use `Signer<'info>` or `has_one = authority` constraint. In native Solana, call `account.is_signer`."
+    code_pattern: "pub fn \\w+\\(ctx: Context"
+    tags: ["signer", "access-control", "solana"]
+    priority: "high"
+  - id: "TIP-SOL-OWN-01"
+    title: "Verify account owner in native programs"
+    category: "Account Security"
+    tip: "Always check `account.owner == &expected_program_id`. Anchor's Account<T> does this automatically, but manual deserialization skips owner checks."
+    code_pattern: null
+    tags: ["owner", "account-validation", "solana"]
+    priority: "high"
+  - id: "TIP-SOL-DISC-01"
+    title: "Account discriminator confusion"
+    category: "Account Security"
+    tip: "Anchor uses 8-byte discriminators. If you manually deserialize accounts, you must check the discriminator yourself. An attacker can pass a different account type with the same layout."
+    code_pattern: "try_from_slice|deserialize"
+    tags: ["discriminator", "type-confusion", "solana"]
+    priority: "high"
+  - id: "TIP-SOL-PDA-01"
+    title: "PDA seed collision risk"
+    category: "PDA Security"
+    tip: "Ensure PDA seeds are unique per account type. If two different account types share seeds, an attacker can create collisions. Include a type prefix or discriminator in seeds."
+    code_pattern: "find_program_address|seeds\\s*="
+    tags: ["pda", "seeds", "collision", "solana"]
+    priority: "high"
+  - id: "TIP-SOL-PDA-02"
+    title: "Validate PDA bump seed"
+    category: "PDA Security"
+    tip: "Store the canonical bump in the account and validate it on subsequent calls. Using a non-canonical bump can create a different PDA that looks valid."
+    code_pattern: "bump\\s*="
+    tags: ["pda", "bump", "solana"]
+    priority: "medium"
+  - id: "TIP-SOL-CPI-01"
+    title: "CPI privilege escalation"
+    category: "CPI Security"
+    tip: "When making CPI calls with signer seeds, ensure the target program is the expected one. An attacker could pass a malicious program_id to invoke_signed."
+    code_pattern: "invoke_signed|CpiContext"
+    tags: ["cpi", "privilege-escalation", "solana"]
+    priority: "high"
+  - id: "TIP-SOL-CPI-02"
+    title: "Arbitrary CPI target"
+    category: "CPI Security"
+    tip: "If the program ID for a CPI is passed as an account, validate it against a known constant. An attacker can pass any program as the CPI target."
+    code_pattern: null
+    tags: ["cpi", "arbitrary-program", "solana"]
+    priority: "high"
+  - id: "TIP-SOL-MATH-01"
+    title: "Integer overflow in release builds"
+    category: "Math"
+    tip: "Rust's release mode wraps on overflow instead of panicking. Use checked_add/checked_sub/checked_mul for all arithmetic in Solana programs."
+    code_pattern: "\\+|\\-|\\*"
+    tags: ["overflow", "math", "solana"]
+    priority: "high"
+  - id: "TIP-SOL-INIT-01"
+    title: "Reinitialization vulnerability"
+    category: "Initialization"
+    tip: "Ensure accounts can only be initialized once. In Anchor, use `init` constraint. In native programs, check `is_initialized` flag before writing."
+    code_pattern: "init\\b|is_initialized"
+    tags: ["initialization", "reinit", "solana"]
+    priority: "high"
+  - id: "TIP-SOL-CLOSE-01"
+    title: "Account closing: zero data and drain lamports"
+    category: "Account Lifecycle"
+    tip: "When closing accounts, BOTH zero all data AND drain all lamports to the recipient. If you only drain lamports, the account can be revived with the same data."
+    code_pattern: "close\\s*=|close_account"
+    tags: ["close", "account-revival", "solana"]
+    priority: "high"
+  - id: "TIP-SOL-TOKEN-01"
+    title: "Token account validation"
+    category: "Token Security"
+    tip: "Validate token accounts: check mint matches expected, check owner/authority, check that associated token accounts are derived correctly."
+    code_pattern: "token_account|Token<'info>|mint\\s*="
+    tags: ["token", "spl", "validation", "solana"]
+    priority: "high"
+  - id: "TIP-SOL-RENT-01"
+    title: "Missing rent exemption check"
+    category: "Account Security"
+    tip: "Ensure created accounts are rent-exempt. If an account falls below rent-exempt minimum, it can be garbage collected by the runtime."
+    code_pattern: "minimum_balance|rent_exempt"
+    tags: ["rent", "account-security", "solana"]
+    priority: "medium"

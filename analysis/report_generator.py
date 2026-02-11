@@ -3219,7 +3219,8 @@ Only include the most relevant 10-20 lines that directly relate to the vulnerabi
             '.cpp': 'cpp',
             '.c': 'c',
             '.vyper': 'python',
-            '.vy': 'python'
+            '.vy': 'python',
+            '.move': 'move'
         }
         ext = Path(file_path).suffix.lower()
         return ext_map.get(ext, 'plaintext')

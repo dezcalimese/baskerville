@@ -33,6 +33,7 @@ class ChecklistItem:
     tags: list[str]
     references: list[str]
     source: str  # "solodit" or "custom"
+    chain: str = "evm"
 
     def matches(self, query: str) -> bool:
         """Check if item matches a search query."""
@@ -170,6 +171,8 @@ class ChecklistLoader:
                     continue
 
                 category = data.get("category", yaml_file.stem)
+                # Read top-level chain key as default for all items in this file
+                file_chain = data.get("chain", "evm")
 
                 for item_data in data.get("items", []):
                     items.append(ChecklistItem(
@@ -183,6 +186,7 @@ class ChecklistLoader:
                         tags=item_data.get("tags", []),
                         references=item_data.get("references", []),
                         source="custom",
+                        chain=item_data.get("chain", file_chain),
                     ))
             except Exception as e:
                 print(f"[!] Failed to load custom checklist {yaml_file}: {e}")
@@ -259,6 +263,19 @@ class ChecklistLoader:
         """Get all checklist items."""
         self._load_sync()
         return self._items
+
+    def get_by_chain(self, chain_id: str) -> list[ChecklistItem]:
+        """Get checklist items filtered by chain.
+
+        Args:
+            chain_id: Chain identifier (e.g., "evm", "solana", "sui")
+
+        Returns:
+            List of checklist items matching the given chain
+        """
+        self._load_sync()
+        chain_lower = chain_id.lower()
+        return [item for item in self._items if item.chain.lower() == chain_lower]
 
     def get_by_category(self, category: str) -> list[ChecklistItem]:
         """Get checklist items by category (fuzzy match)."""

@@ -1,0 +1,33 @@
+chain: solana
+category: "Solana Account Validation"
+items:
+  - id: "SOL-AV-01"
+    question: "Are all instruction signers properly validated?"
+    description: "Every instruction that modifies state must verify the signer matches the expected authority."
+    remediation: "Use Anchor's Signer<'info> type or manually check account.is_signer in native programs."
+    severity: "high"
+    tags: ["signer", "validation", "solana"]
+  - id: "SOL-AV-02"
+    question: "Are account owners checked for all deserialized accounts?"
+    description: "Without owner checks, an attacker can pass an account owned by a different program with matching data layout."
+    remediation: "Use Anchor's Account<'info, T> which auto-checks owner, or manually verify account.owner == expected_program_id."
+    severity: "high"
+    tags: ["owner", "validation", "solana"]
+  - id: "SOL-AV-03"
+    question: "Are account discriminators validated for manually deserialized accounts?"
+    description: "Anchor uses 8-byte discriminators to prevent account type confusion. Manual deserialization must verify discriminators."
+    remediation: "Check the first 8 bytes match the expected discriminator before deserializing account data."
+    severity: "high"
+    tags: ["discriminator", "type-confusion", "solana"]
+  - id: "SOL-AV-04"
+    question: "Are PDA seeds unique across account types to prevent collisions?"
+    description: "If different account types share the same PDA seeds, an attacker can create collisions."
+    remediation: "Include a type-specific prefix or discriminator in PDA seeds."
+    severity: "high"
+    tags: ["pda", "seeds", "solana"]
+  - id: "SOL-AV-05"
+    question: "Are all token accounts validated for correct mint and authority?"
+    description: "Token accounts must be checked: correct mint, correct owner/delegate, and correct associated token address."
+    remediation: "Use Anchor's token::TokenAccount constraints or manually verify mint, owner, and authority fields."
+    severity: "high"
+    tags: ["token", "spl", "solana"]

@@ -61,6 +61,13 @@ class HypothesisEnricher:
         "price-manipulation": "Price Manipulation",
         "logic": "Logic Error",
         "griefing": "Griefing",
+        "missing-signer": "Missing Signer",
+        "pda": "PDA",
+        "cpi": "CPI",
+        "account-validation": "Account Validation",
+        "shared-object": "Shared Object",
+        "capability": "Capability",
+        "move-type": "Type Safety",
     }
 
     # Keywords to extract from vulnerability types
@@ -75,6 +82,13 @@ class HypothesisEnricher:
         "signature": ["signature", "ecrecover", "replay", "nonce"],
         "storage": ["storage", "collision", "slot", "proxy"],
         "logic": ["logic", "state", "condition", "check"],
+        "missing-signer": ["missing signer", "signer check", "signer validation", "unauthorized signer"],
+        "pda": ["pda", "program derived address", "seed collision", "bump"],
+        "cpi": ["cpi", "cross-program invocation", "invoke_signed", "privilege escalation"],
+        "account-validation": ["account validation", "owner check", "discriminator", "account confusion"],
+        "shared-object": ["shared object", "object ownership", "race condition", "concurrent access"],
+        "capability": ["capability", "cap", "witness", "one-time witness", "admin cap"],
+        "move-type": ["type confusion", "generics", "phantom type", "dynamic field"],
     }
 
     def __init__(

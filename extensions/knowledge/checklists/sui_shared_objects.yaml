@@ -1,0 +1,21 @@
+chain: sui
+category: "Sui Shared Objects"
+items:
+  - id: "SUI-SHARE-01"
+    question: "Are entry functions with shared object parameters properly validated?"
+    description: "Entry functions accepting shared objects must validate the object state before mutation."
+    remediation: "Add assert! checks at the start of entry functions to validate object state and caller authority."
+    severity: "high"
+    tags: ["entry-function", "validation", "sui"]
+  - id: "SUI-SHARE-02"
+    question: "Is the package UpgradeCap properly secured?"
+    description: "The UpgradeCap controls package upgrades. If leaked, anyone can upgrade the package."
+    remediation: "Transfer UpgradeCap to a secure admin address or destroy it to make the package immutable."
+    severity: "high"
+    tags: ["upgrade", "capability", "sui"]
+  - id: "SUI-SHARE-03"
+    question: "Are clock-dependent operations resistant to timestamp manipulation?"
+    description: "The Clock object's timestamp has validator consensus delay and can be slightly manipulated."
+    remediation: "Use time windows rather than exact timestamps. Don't rely on sub-second precision."
+    severity: "medium"
+    tags: ["clock", "timestamp", "sui"]

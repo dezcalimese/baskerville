@@ -19,6 +19,7 @@ class AuditorTip:
     code_pattern: str | None  # Optional regex or code pattern to look for
     tags: list[str]
     priority: str  # high, medium, low
+    chain: str = "evm"
 
 
 class TipLoader:
@@ -46,6 +47,8 @@ class TipLoader:
                     with open(yaml_file) as f:
                         data = yaml.safe_load(f)
                     if data and "tips" in data:
+                        # Read top-level chain key as default for all tips in this file
+                        file_chain = data.get("chain", "evm")
                         for tip_data in data["tips"]:
                             self._tips.append(AuditorTip(
                                 id=tip_data.get("id", ""),
@@ -55,6 +58,7 @@ class TipLoader:
                                 code_pattern=tip_data.get("code_pattern"),
                                 tags=tip_data.get("tags", []),
                                 priority=tip_data.get("priority", "medium"),
+                                chain=tip_data.get("chain", file_chain),
                             ))
                 except Exception as e:
                     print(f"[!] Failed to load tips from {yaml_file}: {e}")
@@ -209,6 +213,19 @@ class TipLoader:
         """Get all tips."""
         self._load()
         return self._tips
+
+    def get_by_chain(self, chain_id: str) -> list[AuditorTip]:
+        """Get tips filtered by chain.
+
+        Args:
+            chain_id: Chain identifier (e.g., "evm", "solana", "sui")
+
+        Returns:
+            List of tips matching the given chain
+        """
+        self._load()
+        chain_lower = chain_id.lower()
+        return [t for t in self._tips if t.chain.lower() == chain_lower]
 
     def get_by_category(self, category: str) -> list[AuditorTip]:
         """Get tips by category."""

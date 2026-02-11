@@ -67,6 +67,7 @@ class KnowledgeBase:
         include_checklists: bool = True,
         include_templates: bool = True,
         include_tips: bool = True,
+        chain: str | None = None,
     ) -> KnowledgeQuery:
         """Query the knowledge base.
 
@@ -75,6 +76,7 @@ class KnowledgeBase:
             include_checklists: Include checklist results
             include_templates: Include template results
             include_tips: Include tip results
+            chain: Optional chain filter (e.g., "evm", "solana", "sui")
 
         Returns:
             KnowledgeQuery with matching items
@@ -92,23 +94,42 @@ class KnowledgeBase:
         if include_tips:
             tips = self.tips.search(search_term)
 
+        # Filter by chain if specified
+        if chain:
+            chain_lower = chain.lower()
+            if checklists:
+                checklists = [c for c in checklists if c.chain.lower() == chain_lower]
+            if templates:
+                templates = [t for t in templates if t.chain.lower() == chain_lower]
+            if tips:
+                tips = [t for t in tips if t.chain.lower() == chain_lower]
+
         return KnowledgeQuery(
             checklists=checklists,
             templates=templates,
             tips=tips,
         )
 
-    def get_audit_context(self, vulnerability_type: str) -> str:
+    def get_audit_context(self, vulnerability_type: str, chain: str | None = None) -> str:
         """Get context for auditing a specific vulnerability type.
+
+        Args:
+            vulnerability_type: Type of vulnerability to get context for
+            chain: Optional chain filter (e.g., "evm", "solana", "sui")
 
         Returns a formatted string with relevant checklists, tips, and templates
         suitable for including in LLM prompts.
         """
-        query = self.query(vulnerability_type)
+        query = self.query(vulnerability_type, chain=chain)
         return query.to_context()
 
-    def get_protocol_context(self, protocol_type: str) -> str:
-        """Get context for auditing a specific protocol type (lending, AMM, etc.)."""
+    def get_protocol_context(self, protocol_type: str, chain: str | None = None) -> str:
+        """Get context for auditing a specific protocol type (lending, AMM, etc.).
+
+        Args:
+            protocol_type: Type of protocol (e.g., "lending", "amm", "vault")
+            chain: Optional chain filter (e.g., "evm", "solana", "sui")
+        """
         # Map protocol types to relevant vulnerability categories
         protocol_vulns = {
             "lending": ["oracle", "liquidation", "interest", "collateral", "flash-loan"],
@@ -126,7 +147,7 @@ class KnowledgeBase:
         all_templates = []
 
         for vuln in vulns:
-            query = self.query(vuln)
+            query = self.query(vuln, chain=chain)
             all_checklists.extend(query.checklists)
             all_tips.extend(query.tips)
             all_templates.extend(query.templates)

@@ -1,0 +1,21 @@
+chain: solana
+category: "Solana Signer Authorization"
+items:
+  - id: "SOL-AUTH-01"
+    question: "Can accounts be reinitialized after initial setup?"
+    description: "If initialization doesn't check for prior initialization, an attacker can reinitialize with malicious parameters."
+    remediation: "Use Anchor's init constraint (checks discriminator) or manually check is_initialized flag."
+    severity: "high"
+    tags: ["initialization", "reinit", "solana"]
+  - id: "SOL-AUTH-02"
+    question: "Are closed accounts properly zeroed and drained?"
+    description: "Closing without zeroing data allows account revival when re-funded. The runtime doesn't garbage collect immediately."
+    remediation: "Zero all account data AND drain all lamports to a recipient. Use Anchor's close constraint."
+    severity: "high"
+    tags: ["close", "account-revival", "solana"]
+  - id: "SOL-AUTH-03"
+    question: "Is integer arithmetic protected against overflow in release builds?"
+    description: "Rust release builds wrap on integer overflow instead of panicking. This is a common source of Solana vulnerabilities."
+    remediation: "Use checked_add, checked_sub, checked_mul, or Anchor's require! with explicit bounds checking."
+    severity: "high"
+    tags: ["overflow", "math", "solana"]

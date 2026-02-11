@@ -48,8 +48,38 @@ class BaseFormatter(ABC):
         """Format multiple findings."""
         return [self.format_finding(f) for f in findings]
 
-    def format_code_block(self, code: str, language: str = "solidity") -> str:
-        """Format a code block."""
+    def _detect_language_from_chain(self, chain: str) -> str:
+        """Detect programming language from chain identifier.
+
+        Args:
+            chain: Chain identifier (evm, solana, sui, aptos, etc.)
+
+        Returns:
+            Programming language for syntax highlighting
+        """
+        chain_language_map = {
+            "evm": "solidity",
+            "ethereum": "solidity",
+            "solana": "rust",
+            "sui": "move",
+            "aptos": "move",
+        }
+        return chain_language_map.get(chain.lower(), "solidity")
+
+    def format_code_block(self, code: str, language: str | None = None, finding: Finding | None = None) -> str:
+        """Format a code block.
+
+        Args:
+            code: The code to format
+            language: Programming language. If None, will be detected from finding's chain.
+            finding: Optional finding to extract chain info from
+        """
+        if language is None:
+            if finding and hasattr(finding, 'chain'):
+                language = self._detect_language_from_chain(finding.chain)
+            else:
+                # Default to solidity for backward compatibility
+                language = "solidity"
         return f"```{language}\n{code}\n```"
 
     def format_location(self, finding: Finding) -> str:
